@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Pay Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Enable dark: variants
+    tailwind.config = { darkMode: 'class' }
+  </script>
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+  <div class="min-h-screen flex items-start justify-center p-6">
+    <div class="w-full max-w-5xl">
+
+      <!-- Header + Hourly rate (right) -->
+      <header class="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-semibold">My Pay Calculator</h1>
+            <button id="themeToggle"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-900">
+              <span id="themeIconSun" class="hidden text-amber-500">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
+                  <path d="M12 4.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-.5A.75.75 0 0 1 12 6.25v-1.5ZM12 16.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75v-1.5ZM7.28 6.22a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06L7.28 7.28a.75.75 0 0 1 0-1.06Zm6.32 6.32a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM4.75 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H5.5A.75.75 0 0 1 4.75 12Zm10.5 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1-.75-.75ZM7.28 15.88a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 1 1 1.06 1.06L8.34 15.88a.75.75 0 0 1-1.06 0Zm6.32-6.32a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06L14.66 9.56a.75.75 0 0 1-1.06 0ZM9.75 12a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Z" />
+                </svg>
+              </span>
+              <span id="themeIconMoon" class="hidden text-slate-200">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
+                  <path d="M21.752 15.002A9.718 9.718 0 0 1 12 21.75 9.75 9.75 0 0 1 8.25 3.018a.75.75 0 0 1 .964.964A8.25 8.25 0 0 0 20.768 14.04a.75.75 0 0 1 .984.962Z" />
+                </svg>
+              </span>
+              <span id="themeToggleLabel">Dark mode</span>
+            </button>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Track shifts, breaks, and total hours. Shift data auto-clears after 30 days.
+          </p>
+        </div>
+
+        <div class="w-full md:w-64">
+          <label class="block text-sm font-medium mb-1">Hourly Rate ($)</label>
+          <input
+            id="hourlyRate"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 25"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+                   focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-white/10"
+          />
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Saved automatically</p>
+        </div>
+      </header>
+
+      <!-- Form -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="flex items-center gap-2 text-sm font-medium mb-1">
+              Date
+              <span id="todayChip" class="hidden text-[11px] px-2 py-0.5 rounded-full border border-slate-300 bg-slate-50 text-slate-700
+                                          dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                Today
+              </span>
+            </label>
+            <input id="date" type="date"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Break (minutes)</label>
+            <input id="breakMin" type="number" min="0" value="0" placeholder="e.g. 30"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Clock in</label>
+            <input id="clockIn" type="time"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Clock out</label>
+            <input id="clockOut" type="time"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Overnight shifts are supported.</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+          <div class="text-sm flex flex-wrap items-center gap-3">
+            <div>
+              <span class="text-slate-600 dark:text-slate-400">Total hours after break:</span>
+              <span id="previewHours" class="font-semibold ml-2">0.00</span>
+            </div>
+            <span id="previewOvernight" class="hidden text-xs px-2 py-0.5 rounded-full border border-slate-300 bg-slate-50 text-slate-700
+                                              dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              Overnight
+            </span>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="addBtn"
+              class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800
+                     dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+              Add Shift
+            </button>
+
+            <button id="cancelEditBtn"
+              class="hidden rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-950">
+              Cancel
+            </button>
+
+            <button id="clearBtn"
+              class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-950">
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <p id="msg" class="mt-3 text-sm"></p>
+      </div>
+
+      <!-- Weekly Summary -->
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Weekly Summary</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Weeks run Monday to Sunday.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Week starting</label>
+            <input id="weekStart" type="date"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+
+            <div class="flex gap-2">
+              <button id="weekThisBtn"
+                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+                       dark:border-slate-700 dark:hover:bg-slate-950">
+                This week
+              </button>
+              <button id="weekPrevBtn"
+                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+                       dark:border-slate-700 dark:hover:bg-slate-950">
+                Previous
+              </button>
+              <button id="weekNextBtn"
+                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+                       dark:border-slate-700 dark:hover:bg-slate-950">
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Hours this week</div>
+            <div id="weekHours" class="text-xl font-semibold">0.00</div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Earned this week</div>
+            <div id="weekEarned" class="text-xl font-semibold">$0.00</div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Shifts this week</div>
+            <div id="weekShifts" class="text-xl font-semibold">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Insights</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Quick stats from your saved shifts.</p>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Longest shift</div>
+                <div id="statLongest" class="text-xl font-semibold">0.00</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">hours</div>
+              </div>
+              <div class="rounded-full bg-emerald-50 text-emerald-600 p-2 dark:bg-emerald-950 dark:text-emerald-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M4 19h16M7 16V9m5 7V5m5 11v-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Average per shift</div>
+                <div id="statAverage" class="text-xl font-semibold">0.00</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">hours</div>
+              </div>
+              <div class="rounded-full bg-sky-50 text-sky-600 p-2 dark:bg-sky-950 dark:text-sky-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M4 12h4l2 4 4-8 2 4h4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Most worked day</div>
+                <div id="statBestDay" class="text-xl font-semibold">—</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">by total hours</div>
+              </div>
+              <div class="rounded-full bg-violet-50 text-violet-600 p-2 dark:bg-violet-950 dark:text-violet-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M7 7h10M7 12h6M7 17h4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Week vs previous</div>
+                <div class="text-xl font-semibold">
+                  <span id="statWeekDeltaHours">0.00</span> <span class="text-sm font-medium">hrs</span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">
+                  <span id="statWeekDeltaEarned">$0.00</span>
+                </div>
+              </div>
+              <div class="rounded-full bg-amber-50 text-amber-600 p-2 dark:bg-amber-950 dark:text-amber-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M5 19l3.5-3.5L11 17l3-3 2 2L19 9" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved Shifts + Totals -->
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <h2 class="text-lg font-semibold">Saved Shifts</h2>
+
+          <div class="text-sm flex flex-wrap gap-6">
+            <div>
+              <span class="text-slate-600 dark:text-slate-400">Total earned:</span>
+              <span id="totalEarned" class="font-semibold ml-2">$0.00</span>
+            </div>
+            <div>
+              <span class="text-slate-600 dark:text-slate-400">All total hours:</span>
+              <span id="grandTotal" class="font-semibold ml-2">0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              <tr>
+                <th class="text-left px-5 py-3 font-medium">Date</th>
+                <th class="text-left px-5 py-3 font-medium">Clock in</th>
+                <th class="text-left px-5 py-3 font-medium">Clock out</th>
+                <th class="text-left px-5 py-3 font-medium">Break</th>
+                <th class="text-left px-5 py-3 font-medium">Total Hours</th>
+                <th class="text-left px-5 py-3 font-medium">Earned</th>
+                <th class="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="rows" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <footer class="mt-6 text-xs text-slate-500 dark:text-slate-400">
+        Tip: Change the Week starting date to see any week’s totals.
+      </footer>
+
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // Storage keys + constants
+    // -----------------------------
+    const STORAGE_KEY = "pay_calc_entries_v2";
+    const RATE_KEY = "pay_calc_hourly_rate_v1";
+    const THEME_KEY = "pay_calc_theme_v1";
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+    // Warnings / guardrails
+    const MAX_SHIFT_HOURS_WARN = 16;
+
+    // -----------------------------
+    // Elements
+    // -----------------------------
+    const els = {
+      date: document.getElementById("date"),
+      clockIn: document.getElementById("clockIn"),
+      clockOut: document.getElementById("clockOut"),
+      breakMin: document.getElementById("breakMin"),
+      previewHours: document.getElementById("previewHours"),
+      previewOvernight: document.getElementById("previewOvernight"),
+      addBtn: document.getElementById("addBtn"),
+      cancelEditBtn: document.getElementById("cancelEditBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      rows: document.getElementById("rows"),
+      grandTotal: document.getElementById("grandTotal"),
+      totalEarned: document.getElementById("totalEarned"),
+      msg: document.getElementById("msg"),
+      hourlyRate: document.getElementById("hourlyRate"),
+
+      weekStart: document.getElementById("weekStart"),
+      weekHours: document.getElementById("weekHours"),
+      weekEarned: document.getElementById("weekEarned"),
+      weekShifts: document.getElementById("weekShifts"),
+      weekThisBtn: document.getElementById("weekThisBtn"),
+      weekPrevBtn: document.getElementById("weekPrevBtn"),
+      weekNextBtn: document.getElementById("weekNextBtn"),
+
+      statLongest: document.getElementById("statLongest"),
+      statAverage: document.getElementById("statAverage"),
+      statBestDay: document.getElementById("statBestDay"),
+      statWeekDeltaHours: document.getElementById("statWeekDeltaHours"),
+      statWeekDeltaEarned: document.getElementById("statWeekDeltaEarned"),
+
+      themeToggle: document.getElementById("themeToggle"),
+      themeToggleLabel: document.getElementById("themeToggleLabel"),
+      themeIconSun: document.getElementById("themeIconSun"),
+      themeIconMoon: document.getElementById("themeIconMoon"),
+      todayChip: document.getElementById("todayChip"),
+    };
+
+    // -----------------------------
+    // State
+    // -----------------------------
+    let editingId = null;
+    let msgTimer = null;
+
+    // -----------------------------
+    // Helpers
+    // -----------------------------
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function todayISO() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    // Parse "YYYY-MM-DD" safely into local Date (no timezone surprises)
+    function parseISODateLocal(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d, 0, 0, 0, 0);
+    }
+
+    function parseTimeToMinutes(timeStr) {
+      const [h, m] = timeStr.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function fmtHours(h) {
+      return (Math.round(h * 100) / 100).toFixed(2);
+    }
+
+    function fmtMoney(x) {
+      return `$${Number(x).toFixed(2)}`;
+    }
+
+    function loadEntries() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try { return JSON.parse(raw) || []; } catch { return []; }
+    }
+
+    function saveEntries(entries) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      } catch (e) {
+        console.error("Failed to save entries:", e);
+        setMessage("Your browser is blocking storage, so shifts can't be saved. Please check privacy settings.", "err", false);
+      }
+    }
+
+    function pruneOldEntries(entries) {
+      const now = Date.now();
+      const fresh = entries.filter(e => (now - e.createdAt) <= THIRTY_DAYS_MS);
+      if (fresh.length !== entries.length) saveEntries(fresh);
+      return fresh;
+    }
+
+    function loadHourlyRate() {
+      const raw = localStorage.getItem(RATE_KEY);
+      return raw ? Number(raw) : 0;
+    }
+
+    function saveHourlyRate(rate) {
+      localStorage.setItem(RATE_KEY, String(rate));
+    }
+
+    function setMessage(text, type = "ok", autoHide = true) {
+      if (msgTimer) clearTimeout(msgTimer);
+
+      els.msg.textContent = text || "";
+      els.msg.className = "mt-3 text-sm";
+
+      if (!text) return;
+
+      if (type === "err") {
+        els.msg.classList.add("text-red-600");
+      } else if (type === "warn") {
+        els.msg.classList.add("text-amber-600");
+      } else {
+        els.msg.classList.add("text-emerald-700");
+      }
+
+      if (autoHide) {
+        msgTimer = setTimeout(() => {
+          els.msg.textContent = "";
+        }, 2600);
+      }
+    }
+
+    // Returns { hours, isOvernight, workedMin, netMin }
+    function calcHoursMeta(inStr, outStr, breakMinutes) {
+      const inMin = parseTimeToMinutes(inStr);
+      let outMin = parseTimeToMinutes(outStr);
+
+      let isOvernight = false;
+      if (outMin < inMin) {
+        outMin += 24 * 60; // overnight
+        isOvernight = true;
+      }
+
+      const workedMin = outMin - inMin;
+      const netMin = Math.max(0, workedMin - breakMinutes);
+      return {
+        hours: netMin / 60,
+        isOvernight,
+        workedMin,
+        netMin
+      };
+    }
+
+    // Week starts Monday. Return Date object for Monday of the given Date (local).
+    function mondayOf(dateObj) {
+      const d = new Date(dateObj);
+      d.setHours(0,0,0,0);
+      const day = d.getDay(); // 0 Sun, 1 Mon...
+      const diff = (day === 0 ? -6 : 1 - day); // if Sunday go back 6 days
+      d.setDate(d.getDate() + diff);
+      return d;
+    }
+
+    function isoFromDate(d) {
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+
+    function getWeekRange(weekStartISO) {
+      const start = parseISODateLocal(weekStartISO);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7); // exclusive
+      return { start, end };
+    }
+
+    function shiftFallsInWeek(entryDateISO, weekStartISO) {
+      const { start, end } = getWeekRange(weekStartISO);
+      const d = parseISODateLocal(entryDateISO);
+      return d >= start && d < end;
+    }
+
+    function setWeekStartToDate(dateISO) {
+      const monday = mondayOf(parseISODateLocal(dateISO));
+      els.weekStart.value = isoFromDate(monday);
+    }
+
+    function updateTodayChip() {
+      const isToday = els.date.value === todayISO();
+      els.todayChip.classList.toggle("hidden", !isToday);
+    }
+
+    function updatePreview() {
+      updateTodayChip();
+
+      const inT = els.clockIn.value;
+      const outT = els.clockOut.value;
+      const breakMin = Number(els.breakMin.value || 0);
+
+      if (!inT || !outT) {
+        els.previewHours.textContent = "0.00";
+        els.previewOvernight.classList.add("hidden");
+        return;
+      }
+
+      const meta = calcHoursMeta(inT, outT, breakMin);
+      els.previewHours.textContent = fmtHours(meta.hours);
+
+      if (meta.isOvernight) els.previewOvernight.classList.remove("hidden");
+      else els.previewOvernight.classList.add("hidden");
+    }
+
+    function renderWeeklySummary(entries) {
+      const rate = loadHourlyRate();
+      const weekISO = els.weekStart.value;
+
+      if (!weekISO) {
+        els.weekHours.textContent = "0.00";
+        els.weekEarned.textContent = "$0.00";
+        els.weekShifts.textContent = "0";
+        return { weekHours: 0, weekShifts: 0, weekEarned: 0 };
+      }
+
+      let weekHours = 0;
+      let weekShifts = 0;
+
+      for (const e of entries) {
+        if (shiftFallsInWeek(e.date, weekISO)) {
+          weekHours += e.totalHours;
+          weekShifts += 1;
+        }
+      }
+
+      const weekEarned = weekHours * rate;
+
+      els.weekHours.textContent = fmtHours(weekHours);
+      els.weekEarned.textContent = fmtMoney(weekEarned);
+      els.weekShifts.textContent = String(weekShifts);
+
+      return { weekHours, weekShifts, weekEarned };
+    }
+
+    function computeMostWorkedDay(entries) {
+      // Total hours per day of week (Mon-Sun)
+      const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const totals = new Map();
+
+      for (const e of entries) {
+        const d = parseISODateLocal(e.date);
+        const key = names[d.getDay()];
+        totals.set(key, (totals.get(key) || 0) + e.totalHours);
+      }
+
+      let best = null;
+      let bestVal = -Infinity;
+      for (const [k, v] of totals.entries()) {
+        if (v > bestVal) {
+          bestVal = v;
+          best = k;
+        }
+      }
+      return best ? { day: best, hours: bestVal } : { day: "—", hours: 0 };
+    }
+
+    function renderInsights(entries) {
+      // Longest + average
+      let longest = 0;
+      let total = 0;
+      for (const e of entries) {
+        if (e.totalHours > longest) longest = e.totalHours;
+        total += e.totalHours;
+      }
+      const avg = entries.length ? (total / entries.length) : 0;
+
+      els.statLongest.textContent = fmtHours(longest);
+      els.statAverage.textContent = fmtHours(avg);
+
+      const best = computeMostWorkedDay(entries);
+      els.statBestDay.textContent = best.day;
+
+      // Week-to-week comparison based on selected weekStart
+      const rate = loadHourlyRate();
+      const weekISO = els.weekStart.value;
+
+      if (!weekISO) {
+        els.statWeekDeltaHours.textContent = "0.00";
+        els.statWeekDeltaEarned.textContent = "$0.00";
+        return;
+      }
+
+      // Selected week totals
+      let thisWeekHours = 0;
+      for (const e of entries) {
+        if (shiftFallsInWeek(e.date, weekISO)) thisWeekHours += e.totalHours;
+      }
+
+      // Previous week (weekStart - 7 days)
+      const prevStart = parseISODateLocal(weekISO);
+      prevStart.setDate(prevStart.getDate() - 7);
+      const prevISO = isoFromDate(prevStart);
+
+      let prevWeekHours = 0;
+      for (const e of entries) {
+        if (shiftFallsInWeek(e.date, prevISO)) prevWeekHours += e.totalHours;
+      }
+
+      const deltaHours = thisWeekHours - prevWeekHours;
+      const deltaEarned = deltaHours * rate;
+
+      els.statWeekDeltaHours.textContent = fmtHours(deltaHours);
+      els.statWeekDeltaEarned.textContent = fmtMoney(deltaEarned);
+
+      // Add subtle +/- coloring
+      els.statWeekDeltaHours.className = "";
+      els.statWeekDeltaEarned.className = "";
+      const positive = deltaHours > 0.0001;
+      const negative = deltaHours < -0.0001;
+
+      const cls = positive
+        ? "text-emerald-600"
+        : negative
+          ? "text-red-600"
+          : "text-slate-500 dark:text-slate-400";
+
+      // classList.add cannot take a space-separated string as one token,
+      // so split and spread the individual class names.
+      const parts = cls.split(" ");
+      els.statWeekDeltaHours.classList.add(...parts);
+      els.statWeekDeltaEarned.classList.add(...parts);
+    }
+
+    function render() {
+      let entries = pruneOldEntries(loadEntries());
+
+      // Sort by date desc, then createdAt desc
+      entries.sort((a, b) => (b.date.localeCompare(a.date)) || (b.createdAt - a.createdAt));
+
+      // Table rows
+      els.rows.innerHTML = "";
+      let totalHours = 0;
+
+      const rate = loadHourlyRate();
+
+      if (entries.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td colspan="7" class="px-5 py-8 text-center text-slate-500 dark:text-slate-400">
+            No shifts yet. Add your first one.
+          </td>
+        `;
+        els.rows.appendChild(tr);
+      } else {
+        for (const e of entries) {
+          totalHours += e.totalHours;
+
+          const overnight = (() => {
+            // detect overnight based on stored times
+            try {
+              const inM = parseTimeToMinutes(e.clockIn);
+              const outM = parseTimeToMinutes(e.clockOut);
+              return outM < inM;
+            } catch { return false; }
+          })();
+
+          const earned = e.totalHours * rate;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="px-5 py-3 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <span>${e.date}</span>
+              </div>
+            </td>
+            <td class="px-5 py-3 whitespace-nowrap">${e.clockIn}</td>
+            <td class="px-5 py-3 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <span>${e.clockOut}</span>
+                ${overnight ? `
+                  <span class="text-[11px] px-2 py-0.5 rounded-full border border-slate-300 bg-slate-50 text-slate-700
+                               dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                    Overnight
+                  </span>
+                ` : ``}
+              </div>
+            </td>
+            <td class="px-5 py-3 whitespace-nowrap">${e.breakMin} min</td>
+            <td class="px-5 py-3 whitespace-nowrap font-medium">${fmtHours(e.totalHours)}</td>
+            <td class="px-5 py-3 whitespace-nowrap font-medium">${fmtMoney(earned)}</td>
+            <td class="px-5 py-3 text-right whitespace-nowrap">
+              <button data-id="${e.id}"
+                class="editBtn rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 hover:bg-slate-100
+                       dark:border-slate-700 dark:hover:bg-slate-950">
+                Edit
+              </button>
+              <button data-id="${e.id}"
+                class="deleteBtn rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 hover:bg-slate-100 ml-2
+                       dark:border-slate-700 dark:hover:bg-slate-950">
+                Delete
+              </button>
+            </td>
+          `;
+          els.rows.appendChild(tr);
+        }
+      }
+
+      els.grandTotal.textContent = fmtHours(totalHours);
+      els.totalEarned.textContent = fmtMoney(totalHours * rate);
+
+      // Weekly summary + insights
+      renderWeeklySummary(entries);
+      renderInsights(entries);
+
+      // Wire edit/delete buttons
+      document.querySelectorAll(".deleteBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const next = loadEntries().filter(e => e.id !== id);
+          saveEntries(next);
+
+          // If deleting the one you're editing, reset edit mode
+          if (editingId === id) resetEditMode();
+
+          render();
+          setMessage("Shift deleted.");
+        });
+      });
+
+      document.querySelectorAll(".editBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const entry = loadEntries().find(e => e.id === id);
+          if (!entry) return;
+
+          editingId = id;
+          els.date.value = entry.date;
+          els.clockIn.value = entry.clockIn;
+          els.clockOut.value = entry.clockOut;
+          els.breakMin.value = String(entry.breakMin);
+
+          els.addBtn.textContent = "Update Shift";
+          els.cancelEditBtn.classList.remove("hidden");
+
+          // Jump weekly summary to that shift’s week immediately
+          setWeekStartToDate(entry.date);
+
+          updatePreview();
+          setMessage("Editing shift. Make changes and click Update Shift.", "warn");
+        });
+      });
+    }
+
+    function clearFieldsAfterAddOrUpdate(keepDateISO = null) {
+      els.date.value = keepDateISO || todayISO();
+      els.clockIn.value = "";
+      els.clockOut.value = "";
+      els.breakMin.value = "0";
+      updatePreview();
+    }
+
+    function resetEditMode() {
+      editingId = null;
+      els.addBtn.textContent = "Add Shift";
+      els.cancelEditBtn.classList.add("hidden");
+      clearFieldsAfterAddOrUpdate(todayISO());
+    }
+
+    // -----------------------------
+    // Validation (guardrails)
+    // -----------------------------
+    function validateAndCompute() {
+      const date = els.date.value.trim();
+      const clockIn = els.clockIn.value.trim();
+      const clockOut = els.clockOut.value.trim();
+      const breakMin = Number(els.breakMin.value || 0);
+
+      if (!date || !clockIn || !clockOut) {
+        setMessage("Please fill Date, Clock in, and Clock out.", "err");
+        return null;
+      }
+      if (Number.isNaN(breakMin) || breakMin < 0) {
+        setMessage("Break minutes must be 0 or more.", "err");
+        return null;
+      }
+      if (clockIn === clockOut) {
+        setMessage("Clock in and clock out are the same (0 hours shift). Please double-check.", "err");
+        return null;
+      }
+
+      // Raw worked minutes (before break clamp)
+      const inMin = parseTimeToMinutes(clockIn);
+      let outMin = parseTimeToMinutes(clockOut);
+      if (outMin < inMin) outMin += 24 * 60;
+      const workedMin = outMin - inMin;
+
+      if (breakMin > workedMin) {
+        // We’ll still save, but your net becomes 0 (already clamped).
+        setMessage("Break is longer than the shift time. Net hours will be 0.00.", "warn");
+      }
+
+      const meta = calcHoursMeta(clockIn, clockOut, breakMin);
+
+      if (meta.hours > MAX_SHIFT_HOURS_WARN) {
+        // Non-blocking warning
+        setMessage(`That’s a long shift (${fmtHours(meta.hours)} hrs). If that’s correct, you can still save it.`, "warn");
+      }
+
+      return {
+        date,
+        clockIn,
+        clockOut,
+        breakMin,
+        totalHours: meta.hours,
+        isOvernight: meta.isOvernight,
+        workedMin: meta.workedMin
+      };
+    }
+
+    function upsertShift() {
+      const computed = validateAndCompute();
+      if (!computed) return;
+
+      const entries = pruneOldEntries(loadEntries());
+
+      if (editingId) {
+        const idx = entries.findIndex(e => e.id === editingId);
+        if (idx === -1) {
+          setMessage("Couldn’t find that shift to update. Try again.", "err");
+          resetEditMode();
+          render();
+          return;
+        }
+
+        entries[idx] = {
+          ...entries[idx],
+          date: computed.date,
+          clockIn: computed.clockIn,
+          clockOut: computed.clockOut,
+          breakMin: computed.breakMin,
+          totalHours: computed.totalHours,
+          // keep createdAt so 30-day pruning still works as “time since entered”
+        };
+
+        saveEntries(entries);
+
+        // Make weekly summary feel automatic: jump to that shift’s week
+        setWeekStartToDate(computed.date);
+
+        render();
+        setMessage("Shift updated.");
+        resetEditMode();
+        return;
+      }
+
+      const entry = {
+        id:
+          (typeof crypto !== "undefined" && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : String(Date.now()) + Math.random().toString(16).slice(2),
+        date: computed.date,
+        clockIn: computed.clockIn,
+        clockOut: computed.clockOut,
+        breakMin: computed.breakMin,
+        totalHours: computed.totalHours,
+        createdAt: Date.now(),
+      };
+
+      entries.push(entry);
+      saveEntries(entries);
+
+      // Make weekly summary feel automatic: jump to that shift’s week
+      setWeekStartToDate(entry.date);
+
+      render();
+      setMessage("Shift saved.");
+
+      // Clear fields after add
+      clearFieldsAfterAddOrUpdate(todayISO());
+    }
+
+    // -----------------------------
+    // Week navigation
+    // -----------------------------
+    function setWeekToThisWeek() {
+      const monday = mondayOf(new Date());
+      els.weekStart.value = isoFromDate(monday);
+      render();
+    }
+
+    function shiftWeekBy(deltaDays) {
+      if (!els.weekStart.value) {
+        setWeekToThisWeek();
+        return;
+      }
+      const d = parseISODateLocal(els.weekStart.value);
+      d.setDate(d.getDate() + deltaDays);
+      els.weekStart.value = isoFromDate(d);
+      render();
+    }
+
+    // -----------------------------
+    // Theme
+    // -----------------------------
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      const isDark = theme === "dark";
+      root.classList.toggle("dark", isDark);
+      if (els.themeToggleLabel) {
+        els.themeToggleLabel.textContent = isDark ? "Light mode" : "Dark mode";
+      }
+      if (els.themeIconSun && els.themeIconMoon) {
+        els.themeIconSun.classList.toggle("hidden", isDark);
+        els.themeIconMoon.classList.toggle("hidden", !isDark);
+      }
+    }
+
+    function loadTheme() {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "dark" || saved === "light") return saved;
+
+      // fallback to system preference
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return prefersDark ? "dark" : "light";
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.classList.contains("dark") ? "dark" : "light";
+      const next = current === "dark" ? "light" : "dark";
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    }
+
+    // -----------------------------
+    // Init
+    // -----------------------------
+    els.date.value = todayISO();
+    updateTodayChip();
+
+    // Set default weekly start = Monday of today
+    setWeekToThisWeek();
+
+    // Load hourly rate
+    els.hourlyRate.value = loadHourlyRate() || "";
+
+    // Load theme
+    applyTheme(loadTheme());
+
+    // -----------------------------
+    // Events
+    // -----------------------------
+    ["input", "change"].forEach(evt => {
+      els.clockIn.addEventListener(evt, updatePreview);
+      els.clockOut.addEventListener(evt, updatePreview);
+      els.breakMin.addEventListener(evt, updatePreview);
+      els.date.addEventListener(evt, () => {
+        updatePreview();
+        updateTodayChip();
+      });
+    });
+
+    els.addBtn.addEventListener("click", upsertShift);
+
+    els.cancelEditBtn.addEventListener("click", () => {
+      resetEditMode();
+      setMessage("Edit cancelled.");
+    });
+
+    els.clearBtn.addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      resetEditMode();
+      render();
+      setMessage("All saved shift data cleared.");
+      updatePreview();
+    });
+
+    els.hourlyRate.addEventListener("input", () => {
+      const rate = Number(els.hourlyRate.value || 0);
+      saveHourlyRate(rate);
+      render();
+    });
+
+    els.weekStart.addEventListener("change", () => {
+      render();
+    });
+
+    els.weekThisBtn.addEventListener("click", setWeekToThisWeek);
+    els.weekPrevBtn.addEventListener("click", () => shiftWeekBy(-7));
+    els.weekNextBtn.addEventListener("click", () => shiftWeekBy(7));
+
+    els.themeToggle.addEventListener("click", toggleTheme);
+
+    // First paint
+    updatePreview();
+    render();
+  </script>
+</body>
+</html>
