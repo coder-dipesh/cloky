@@ -3,8 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Pay Calculator</title>
+  <meta name="description" content="A simple pay calculator for tracking shifts, breaks, and total hours.">
+  <meta name="keywords" content="pay calculator, shift tracker, hourly rate, break calculator, total hours, cloky, weekly summary, insights">
+  <meta name="author" content="Dipesh Siwakoti">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta name="bingbot" content="index, follow">
+  <meta name="yandexbot" content="index, follow">
+  <meta name="sitemap" content="https://cloky-cloky.vercel.app">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cloky">
+  <meta name="application-name" content="Cloky">
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,
+  <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
+    <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F172A"/>
+    <path
+      d="M690 350
+         C625 285 540 252 452 252
+         C300 252 176 374 176 512
+         C176 650 300 772 452 772
+         C540 772 625 739 690 674"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-width="92"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="575" cy="585" r="34" fill="#2DD4BF"/>
+  </svg>
+  
+
+
+  <title>Cloky - Pay Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     // Enable dark: variants
     tailwind.config = { darkMode: 'class' }
@@ -12,14 +46,39 @@
 </head>
 
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-  <div class="min-h-screen flex items-start justify-center p-6">
+  <div class="min-h-screen flex items-start justify-center flex-wrap p-6">
     <div class="w-full max-w-5xl">
 
       <!-- Header + Hourly rate (right) -->
       <header class="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-semibold">My Pay Calculator</h1>
+  
+  
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
+              <!-- Background -->
+              <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F172A"/>
+            
+              <!-- Centered C -->
+              <path
+                d="M640 352
+                   C580 292 500 260 424 260
+                   C292 260 188 364 188 512
+                   C188 660 292 764 424 764
+                   C500 764 580 732 640 672"
+                fill="none"
+                stroke="#FFFFFF"
+                stroke-width="92"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            
+              <!-- Center dot -->
+              <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
+            </svg>
+            
+            
+            <h1 class="text-2xl font-semibold">Cloky - Pay Calculator</h1>
             <button id="themeToggle"
               class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100
                      dark:border-slate-700 dark:hover:bg-slate-900">
@@ -33,7 +92,7 @@
                   <path d="M21.752 15.002A9.718 9.718 0 0 1 12 21.75 9.75 9.75 0 0 1 8.25 3.018a.75.75 0 0 1 .964.964A8.25 8.25 0 0 0 20.768 14.04a.75.75 0 0 1 .984.962Z" />
                 </svg>
               </span>
-              <span id="themeToggleLabel">Dark mode</span>
+              <span id="themeToggleLabel"></span>
             </button>
           </div>
           <p class="text-sm text-slate-600 dark:text-slate-400">
@@ -268,15 +327,25 @@
         <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h2 class="text-lg font-semibold">Saved Shifts</h2>
 
-          <div class="text-sm flex flex-wrap gap-6">
-            <div>
-              <span class="text-slate-600 dark:text-slate-400">Total earned:</span>
-              <span id="totalEarned" class="font-semibold ml-2">$0.00</span>
+          <div class="flex flex-col md:flex-row items-start md:items-center gap-3">
+            <div class="text-sm flex flex-wrap gap-6">
+              <div>
+                <span class="text-slate-600 dark:text-slate-400">Total earned:</span>
+                <span id="totalEarned" class="font-semibold ml-2">$0.00</span>
+              </div>
+              <div>
+                <span class="text-slate-600 dark:text-slate-400">All total hours:</span>
+                <span id="grandTotal" class="font-semibold ml-2">0.00</span>
+              </div>
             </div>
-            <div>
-              <span class="text-slate-600 dark:text-slate-400">All total hours:</span>
-              <span id="grandTotal" class="font-semibold ml-2">0.00</span>
-            </div>
+            <button id="exportPdfBtn"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-950">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export PDF
+            </button>
           </div>
         </div>
 
@@ -355,6 +424,7 @@
       themeIconSun: document.getElementById("themeIconSun"),
       themeIconMoon: document.getElementById("themeIconMoon"),
       todayChip: document.getElementById("todayChip"),
+      exportPdfBtn: document.getElementById("exportPdfBtn"),
     };
 
     // -----------------------------
@@ -390,6 +460,12 @@
 
     function fmtMoney(x) {
       return `$${Number(x).toFixed(2)}`;
+    }
+
+    function getDayName(dateISO) {
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const d = parseISODateLocal(dateISO);
+      return dayNames[d.getDay()];
     }
 
     function loadEntries() {
@@ -678,11 +754,13 @@
 
           const earned = e.totalHours * rate;
 
+          const dayName = getDayName(e.date);
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td class="px-5 py-3 whitespace-nowrap">
-              <div class="flex items-center gap-2">
-                <span>${e.date}</span>
+              <div class="flex flex-col gap-0.5">
+                <span class="font-medium">${e.date}</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400">${dayName}</span>
               </div>
             </td>
             <td class="px-5 py-3 whitespace-nowrap">${e.clockIn}</td>
@@ -944,6 +1022,188 @@
     }
 
     // -----------------------------
+    // PDF Export
+    // -----------------------------
+    function exportToPDF() {
+      const entries = pruneOldEntries(loadEntries());
+      const rate = loadHourlyRate();
+
+      if (entries.length === 0) {
+        setMessage("No shifts to export. Add some shifts first.", "err");
+        return;
+      }
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Calculate totals
+        let totalHours = 0;
+        entries.forEach(e => { totalHours += e.totalHours; });
+        const totalEarned = totalHours * rate;
+
+        // Sort entries by date (descending) for PDF
+        const sortedEntries = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+
+        // Helper function to draw a table row (matching second image with gray header)
+        function drawTableRow(doc, y, rowData, isHeader = false, dateWithDay = null) {
+          const colWidths = [35, 28, 28, 25, 30, 30];
+          const startX = 14;
+          let currentX = startX;
+          const rowHeight = isHeader ? 12 : 9;
+
+          // Header background (light gray like second image)
+          if (isHeader) {
+            doc.setFillColor(241, 245, 249); // slate-100 - light gray background
+            doc.rect(startX, y, 182, rowHeight, "F");
+          }
+
+          // Draw cells (y is now the top of the row, text goes downward)
+          rowData.forEach((text, idx) => {
+            doc.setTextColor(15, 23, 42); // slate-900 for all text
+            doc.setFontSize(isHeader ? 10 : 9);
+            doc.setFont(undefined, isHeader ? "bold" : "normal");
+            
+            // All text left-aligned (matching second image)
+            const align = "left";
+            
+            // Special handling for Date column with day name
+            if (idx === 0 && dateWithDay) {
+              doc.setFontSize(9);
+              doc.setFont(undefined, "normal");
+              doc.setTextColor(15, 23, 42);
+              doc.text(dateWithDay.date, currentX + 3, y + 4);
+              doc.setFontSize(7);
+              doc.setTextColor(100, 116, 139); // slate-500 for day
+              doc.text(dateWithDay.day, currentX + 3, y + 8);
+              doc.setTextColor(15, 23, 42);
+            } else {
+              doc.text(text, currentX + 3, y + 6, { align });
+            }
+            
+            currentX += colWidths[idx];
+          });
+
+          // Draw only horizontal line at bottom of row (subtle, no vertical borders)
+          doc.setDrawColor(226, 232, 240); // slate-200
+          doc.setLineWidth(0.3);
+          doc.line(startX, y + rowHeight, startX + 182, y + rowHeight);
+
+          return y + rowHeight + 1; // Return new y position for next row (add small spacing)
+        }
+
+
+        let currentPage = 1;
+        let yPos = 20;
+
+        // Dark Header Section (like the first image)
+        doc.setFillColor(15, 23, 42); // slate-900
+        doc.rect(0, 0, 210, 35, "F");
+
+        // Title
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.setFont(undefined, "bold");
+        doc.text("Cloky - Shift Report", 14, 15);
+
+        // Subtitle
+        doc.setFontSize(9);
+        doc.setFont(undefined, "normal");
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("en-US", { 
+          year: "numeric", 
+          month: "long", 
+          day: "numeric" 
+        }) + " at " + now.toLocaleTimeString("en-US", { 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        });
+        doc.text("Generated on " + dateStr, 14, 22);
+
+        // Hourly rate badge (green rounded rectangle)
+        if (rate > 0) {
+          doc.setFillColor(34, 197, 94); // emerald-500
+          doc.roundedRect(160, 8, 36, 8, 2, 2, "F");
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(8);
+          doc.setFont(undefined, "bold");
+          doc.text("Rate: " + fmtMoney(rate) + "/hr", 178, 13, { align: "center" });
+        }
+
+        // Start table after header
+        yPos = 50;
+
+        // Table Header (matching web interface)
+        const headers = ["Date", "Clock in", "Clock out", "Break", "Total Hours", "Earned"];
+        yPos = drawTableRow(doc, yPos, headers, true);
+
+        // Table Rows
+        sortedEntries.forEach((e, idx) => {
+          // Check if we need a new page BEFORE drawing the row
+          // A4 page height is 297mm, need 30mm for footer
+          // Row height is 9mm, so break if yPos + rowHeight would exceed 297 - 30 = 267
+          // That means break if yPos > 267 - 9 = 258
+          // But we want a bit more margin, so break if yPos > 260
+          if (yPos > 260) {
+            doc.addPage();
+            currentPage++;
+            yPos = 50;
+
+            // Redraw header on new page
+            yPos = drawTableRow(doc, yPos, headers, true);
+          }
+
+          const dayName = getDayName(e.date);
+          const earned = e.totalHours * rate;
+          const overnight = (() => {
+            try {
+              const inM = parseTimeToMinutes(e.clockIn);
+              const outM = parseTimeToMinutes(e.clockOut);
+              return outM < inM;
+            } catch { return false; }
+          })();
+
+          const clockOutText = e.clockOut + (overnight ? " (O/N)" : "");
+
+          // Date with day combined (like web interface)
+          const dateWithDay = {
+            date: e.date,
+            day: dayName
+          };
+
+          const rowData = [
+            "", // Date will be handled separately with dateWithDay
+            e.clockIn,
+            clockOutText,
+            e.breakMin + " min",
+            fmtHours(e.totalHours),
+            fmtMoney(earned)
+          ];
+
+          yPos = drawTableRow(doc, yPos, rowData, false, dateWithDay);
+        });
+
+        // Footer on each page
+        const totalPages = doc.internal.pages.length - 1;
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184); // slate-400
+          doc.text(`Page ${i} of ${totalPages}`, 197, 285, { align: "right" });
+        }
+
+        // Save PDF
+        const fileName = "clocky-shifts-" + todayISO() + ".pdf";
+        doc.save(fileName);
+
+        setMessage("PDF exported successfully!");
+      } catch (error) {
+        console.error("PDF export error:", error);
+        setMessage("Failed to export PDF. Please try again.", "err");
+      }
+    }
+
+    // -----------------------------
     // Init
     // -----------------------------
     els.date.value = todayISO();
@@ -986,6 +1246,8 @@
       updatePreview();
     });
 
+    els.exportPdfBtn.addEventListener("click", exportToPDF);
+
     els.hourlyRate.addEventListener("input", () => {
       const rate = Number(els.hourlyRate.value || 0);
       saveHourlyRate(rate);
@@ -1008,3 +1270,6 @@
   </script>
 </body>
 </html>
+
+
+
