@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
+              <!-- Background -->
+              <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F172A"></rect>
+            
+              <!-- Centered C -->
+              <path d="M640 352
+                   C580 292 500 260 424 260
+                   C292 260 188 364 188 512
+                   C188 660 292 764 424 764
+                   C500 764 580 732 640 672" fill="none" stroke="#FFFFFF" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"></path>
+            
+              <!-- Center dot -->
+              <circle cx="512" cy="512" r="34" fill="#F59E0B"></circle>
+            </svg>
