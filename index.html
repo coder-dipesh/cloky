@@ -454,6 +454,14 @@
       return h * 60 + m;
     }
 
+    function formatTime12Hour(timeStr) {
+      const [h, m] = timeStr.split(":").map(Number);
+      const hours = h % 12 || 12;
+      const minutes = String(m).padStart(2, "0");
+      const ampm = h < 12 ? "AM" : "PM";
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
     function fmtHours(h) {
       return (Math.round(h * 100) / 100).toFixed(2);
     }
@@ -755,6 +763,10 @@
           const earned = e.totalHours * rate;
 
           const dayName = getDayName(e.date);
+          // Format times in 12-hour format with AM/PM
+          const clockIn12 = formatTime12Hour(e.clockIn);
+          const clockOut12 = formatTime12Hour(e.clockOut);
+          
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td class="px-5 py-3 whitespace-nowrap">
@@ -763,10 +775,10 @@
                 <span class="text-xs text-slate-500 dark:text-slate-400">${dayName}</span>
               </div>
             </td>
-            <td class="px-5 py-3 whitespace-nowrap">${e.clockIn}</td>
+            <td class="px-5 py-3 whitespace-nowrap">${clockIn12}</td>
             <td class="px-5 py-3 whitespace-nowrap">
               <div class="flex items-center gap-2">
-                <span>${e.clockOut}</span>
+                <span>${clockOut12}</span>
                 ${overnight ? `
                   <span class="text-[11px] px-2 py-0.5 rounded-full border border-slate-300 bg-slate-50 text-slate-700
                                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
@@ -1163,7 +1175,9 @@
             } catch { return false; }
           })();
 
-          const clockOutText = e.clockOut + (overnight ? " (O/N)" : "");
+          // Format times in 12-hour format
+          const clockIn12 = formatTime12Hour(e.clockIn);
+          const clockOut12 = formatTime12Hour(e.clockOut) + (overnight ? " (O/N)" : "");
 
           // Date with day combined (like web interface)
           const dateWithDay = {
@@ -1173,8 +1187,8 @@
 
           const rowData = [
             "", // Date will be handled separately with dateWithDay
-            e.clockIn,
-            clockOutText,
+            clockIn12,
+            clockOut12,
             e.breakMin + " min",
             fmtHours(e.totalHours),
             fmtMoney(earned)
@@ -1182,6 +1196,46 @@
 
           yPos = drawTableRow(doc, yPos, rowData, false, dateWithDay);
         });
+
+        // Add totals row at the bottom
+        // Check if we need a new page for totals
+        if (yPos > 260) {
+          doc.addPage();
+          currentPage++;
+          yPos = 50;
+        }
+
+        // Draw a separator line before totals
+        doc.setDrawColor(226, 232, 240); // slate-200
+        doc.setLineWidth(0.5);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 5;
+
+        // Totals row with bold text - align with data columns
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.setTextColor(15, 23, 42);
+        
+        // Column widths: [35, 28, 28, 25, 30, 30] - same as drawTableRow function
+        const colWidths = [35, 28, 28, 25, 30, 30];
+        const startX = 14;
+        let currentX = startX;
+        
+        // "Total" label in first column (left-aligned like data)
+        doc.text("Total", currentX + 3, yPos + 6);
+        currentX += colWidths[0]; // Date column
+        
+        // Skip Clock in, Clock out, Break columns (empty)
+        currentX += colWidths[1] + colWidths[2] + colWidths[3];
+        
+        // Total Hours (right-aligned within Total Hours column for better number alignment)
+        const totalHoursX = currentX + colWidths[4] - 18; // Right edge of column minus padding
+        doc.text(fmtHours(totalHours), totalHoursX, yPos + 6, { align: "right" });
+        currentX += colWidths[4];
+        
+        // Total Earned (right-aligned within Earned column for better number alignment)
+        const totalEarnedX = currentX + colWidths[5] - 18; // Right edge of column minus padding
+        doc.text(fmtMoney(totalEarned), totalEarnedX, yPos + 6, { align: "right" });
 
         // Footer on each page
         const totalPages = doc.internal.pages.length - 1;
