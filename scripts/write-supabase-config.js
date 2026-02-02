@@ -7,8 +7,15 @@
 const fs = require("fs");
 const path = require("path");
 
-const url = process.env.SUPABASE_URL || "";
-const key = process.env.SUPABASE_ANON_KEY || "";
+const url = (process.env.SUPABASE_URL || "").trim();
+const key = (process.env.SUPABASE_ANON_KEY || "").trim();
+
+if (!url || !key) {
+  console.error("Missing env vars. In Vercel → Project → Settings → Environment Variables, add:");
+  console.error("  SUPABASE_URL = your Supabase project URL");
+  console.error("  SUPABASE_ANON_KEY = your Supabase anon key (Project Settings → API)");
+  process.exit(1);
+}
 
 const content = `/**
  * Supabase configuration (generated at build time)

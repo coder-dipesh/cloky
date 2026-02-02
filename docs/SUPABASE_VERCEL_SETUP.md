@@ -23,15 +23,17 @@
 2. Edit `js/supabase-config.js` and set `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 3. Open the app (e.g. with a local server). Sign in with your email; Supabase will send a magic link.
 
-## 3. Vercel deployment
+## 3. Vercel deployment (fix “Supabase is not configured” in production)
 
-1. In **Vercel → Project → Settings → Environment Variables**, add:
-   - `SUPABASE_URL` = your Supabase project URL
-   - `SUPABASE_ANON_KEY` = your Supabase anon key
+1. In **Vercel → Your project → Settings → Environment Variables**, add:
+   - **Name:** `SUPABASE_URL` → **Value:** your Supabase project URL (e.g. `https://xxxx.supabase.co`)
+   - **Name:** `SUPABASE_ANON_KEY` → **Value:** your Supabase anon key (from Supabase → Project Settings → API → anon public)
+   Apply to **Production** (and Preview if you want).
 2. In **Settings → Build & Development**:
-   - **Build Command**: `node scripts/write-supabase-config.js`
-   - **Output Directory**: leave default (or `.` if you use a static export).
-3. Redeploy. The build script will write `js/supabase-config.js` from env vars so the app can connect to Supabase.
+   - **Build Command:** `node scripts/write-supabase-config.js`  
+     (If you use the repo’s `vercel.json`, this is set there; otherwise set it here.)
+   - **Output Directory:** leave empty or `.` (so the built site includes the generated `js/supabase-config.js`).
+3. **Redeploy** (Deployments → … on latest → Redeploy). The build runs the script, which creates `js/supabase-config.js` from the env vars. If the build fails with “Missing env vars”, add the two variables above and redeploy again.
 
 ## 4. Custom SMTP (SendGrid) – optional
 
