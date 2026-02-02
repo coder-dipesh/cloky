@@ -68,15 +68,23 @@
       table th, table td { padding: 0.75rem 0.5rem; }
     }
     /* Safe area for notched phones */
-    body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+      overflow-x: hidden;
+    }
     .min-h-screen { padding-top: max(0.25rem, env(safe-area-inset-top)); }
     .overflow-x-auto.-webkit-overflow-scrolling-touch { -webkit-overflow-scrolling: touch; }
+    /* Prevent horizontal overflow on mobile: let content shrink and text wrap */
+    #appContent, #appContent > * { min-width: 0; }
+    #appContent p, #appContent .text-xs, #appContent .text-sm { overflow-wrap: break-word; word-break: break-word; }
   </style>
 </head>
 
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
-  <div class="min-h-screen flex items-start justify-center flex-wrap p-3 sm:p-4 md:p-6">
-    <div class="w-full max-w-5xl">
+  <div class="min-h-screen flex items-start justify-center flex-wrap p-3 sm:p-4 md:p-6 overflow-x-hidden">
+    <div class="w-full max-w-5xl min-w-0">
 
       <!-- Login (email + password) – shown when not authenticated -->
       <section id="loginSection" class="hidden bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 max-w-md mx-auto">
@@ -120,7 +128,7 @@
       </section>
 
       <!-- Main app – shown when authenticated -->
-      <div id="appContent" class="hidden w-full">
+      <div id="appContent" class="hidden w-full min-w-0">
 
       <!-- Header + Hourly rate (right) -->
       <header class="mb-4 md:mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
@@ -176,12 +184,12 @@
           </div>
 
           </div>
-          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 break-words min-w-0">
             Track shifts, breaks, and total hours. Shift data auto-clears after 30 days.
           </p>
         </div>
 
-        <div class="w-full md:w-64">
+        <div class="w-full md:w-64 min-w-0">
           <label class="block text-sm font-medium mb-1">Hourly Rate ($)</label>
           <input
             id="hourlyRate"
@@ -189,7 +197,7 @@
             min="0"
             step="0.01"
             placeholder="e.g. 25"
-            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
+            class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                    focus:outline-none focus:ring-2 focus:ring-slate-900/10
                    dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-white/10"
           />
@@ -198,9 +206,9 @@
       </header>
 
       <!-- Form -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          <div>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
+          <div class="min-w-0">
             <label class="flex items-center gap-2 text-sm font-medium mb-1">
               Date
               <span id="todayChip" class="hidden touch-target text-xs sm:text-xs px-3 py-2 sm:px-2.5 sm:py-1 rounded-full border border-slate-300 bg-slate-50 text-slate-700 inline-flex items-center
@@ -209,40 +217,40 @@
               </span>
             </label>
             <input id="date" type="date"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
 
-          <div>
+          <div class="min-w-0">
             <label class="block text-sm font-medium mb-1">Break (minutes)</label>
             <input id="breakMin" type="number" min="0" value="0" placeholder="e.g. 30"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
 
-          <div>
+          <div class="min-w-0">
             <label class="block text-sm font-medium mb-1">Clock in</label>
             <input id="clockIn" type="time"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
 
-          <div>
+          <div class="min-w-0">
             <label class="block text-sm font-medium mb-1">Clock out</label>
             <input id="clockOut" type="time"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Overnight shifts are supported.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 break-words">Overnight shifts are supported.</p>
           </div>
         </div>
 
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 lg:items-center lg:justify-between">
-          <div class="text-sm flex flex-wrap items-center gap-3">
-            <div>
+        <div class="mt-4 flex flex-col sm:flex-row gap-3 lg:items-center lg:justify-between min-w-0">
+          <div class="text-sm flex flex-wrap items-center gap-3 min-w-0">
+            <div class="min-w-0 break-words">
               <span class="text-slate-600 dark:text-slate-400">Total hours after break:</span>
               <span id="previewHours" class="font-semibold ml-2">0.00</span>
             </div>
@@ -252,7 +260,7 @@
             </span>
           </div>
 
-          <div class="flex flex-col xs:flex-row gap-2 sm:flex-wrap">
+          <div class="flex flex-col sm:flex-row gap-2 sm:flex-wrap min-w-0">
             <button id="addBtn" type="button"
               class="touch-target w-full sm:w-auto rounded-xl bg-slate-900 text-white px-4 py-3 sm:py-2 text-sm font-medium hover:bg-slate-800
                      dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
@@ -275,15 +283,15 @@
       </div>
 
       <!-- Weekly Summary -->
-      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 min-w-0">
+          <div class="min-w-0">
             <h2 class="text-lg font-semibold">Weekly Summary</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Weeks run Monday to Sunday.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 break-words">Weeks run Monday to Sunday.</p>
           </div>
 
           <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-            <div class="flex flex-col xs:flex-row gap-2 sm:items-center">
+            <div class="flex flex-col sm:flex-row gap-2 sm:items-center min-w-0">
               <label class="text-sm font-medium text-slate-700 dark:text-slate-200 shrink-0">Week starting</label>
               <input id="weekStart" type="date"
                 class="w-full sm:w-auto min-h-[44px] rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-sm
@@ -310,16 +318,16 @@
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
             <div class="text-xs text-slate-500 dark:text-slate-400">Hours this week</div>
             <div id="weekHours" class="text-xl font-semibold">0.00</div>
           </div>
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
             <div class="text-xs text-slate-500 dark:text-slate-400">Earned this week</div>
             <div id="weekEarned" class="text-xl font-semibold">$0.00</div>
           </div>
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
             <div class="text-xs text-slate-500 dark:text-slate-400">Shifts this week</div>
             <div id="weekShifts" class="text-xl font-semibold">0</div>
           </div>
@@ -327,18 +335,18 @@
       </div>
 
       <!-- Analytics -->
-      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-        <div class="flex items-center justify-between gap-3">
-          <div>
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0">
+        <div class="flex items-center justify-between gap-3 min-w-0">
+          <div class="min-w-0">
             <h2 class="text-lg font-semibold">Insights</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Quick stats from your saved shifts.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 break-words">Quick stats from your saved shifts.</p>
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 min-w-0">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
+            <div class="flex items-start justify-between gap-3 min-w-0">
+              <div class="min-w-0">
                 <div class="text-xs text-slate-500 dark:text-slate-400">Longest shift</div>
                 <div id="statLongest" class="text-xl font-semibold">0.00</div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">hours</div>
@@ -351,9 +359,9 @@
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
+            <div class="flex items-start justify-between gap-3 min-w-0">
+              <div class="min-w-0">
                 <div class="text-xs text-slate-500 dark:text-slate-400">Average per shift</div>
                 <div id="statAverage" class="text-xl font-semibold">0.00</div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">hours</div>
@@ -366,9 +374,9 @@
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
+            <div class="flex items-start justify-between gap-3 min-w-0">
+              <div class="min-w-0">
                 <div class="text-xs text-slate-500 dark:text-slate-400">Most worked day</div>
                 <div id="statBestDay" class="text-xl font-semibold">—</div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">by total hours</div>
@@ -381,9 +389,9 @@
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 min-w-0">
+            <div class="flex items-start justify-between gap-3 min-w-0">
+              <div class="min-w-0">
                 <div class="text-xs text-slate-500 dark:text-slate-400">Week vs previous</div>
                 <div class="text-xl font-semibold">
                   <span id="statWeekDeltaHours">0.00</span> <span class="text-sm font-medium">hrs</span>
@@ -403,17 +411,17 @@
       </div>
 
       <!-- Saved Shifts + Totals -->
-      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div class="p-4 sm:p-5 flex flex-col gap-3">
-          <div class="flex flex-col gap-3">
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden min-w-0">
+        <div class="p-4 sm:p-5 flex flex-col gap-3 min-w-0">
+          <div class="flex flex-col gap-3 min-w-0">
             <h2 class="text-lg font-semibold">Saved Shifts</h2>
-            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
-              <div class="text-sm flex flex-wrap gap-4 sm:gap-6">
-                <div>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 min-w-0">
+              <div class="text-sm flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 sm:gap-6 min-w-0">
+                <div class="min-w-0 break-words">
                   <span class="text-slate-600 dark:text-slate-400">Total earned:</span>
                   <span id="totalEarned" class="font-semibold ml-2">$0.00</span>
                 </div>
-                <div>
+                <div class="min-w-0 break-words">
                   <span class="text-slate-600 dark:text-slate-400">All total hours:</span>
                   <span id="grandTotal" class="font-semibold ml-2">0.00</span>
                 </div>
@@ -437,8 +445,8 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto -webkit-overflow-scrolling-touch">
-          <table class="w-full text-sm min-w-[640px]">
+        <div class="overflow-x-auto -webkit-overflow-scrolling-touch max-w-full">
+          <table class="w-full text-sm min-w-[640px]" role="grid">
             <thead class="bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
               <tr>
                 <th class="w-10 px-3 py-3 text-center">
@@ -460,7 +468,7 @@
         <div id="paginationWrap" class="hidden px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 flex-wrap"></div>
       </div>
 
-      <footer class="mt-6 text-xs text-slate-500 dark:text-slate-400">
+      <footer class="mt-6 text-xs text-slate-500 dark:text-slate-400 break-words min-w-0">
         Tip: Change the Week starting date to see any week’s totals.
       </footer>
 
