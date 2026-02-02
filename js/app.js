@@ -13,6 +13,7 @@ import * as UI from './ui.js';
 import * as Forms from './forms.js';
 import * as Theme from './theme.js';
 import { exportToPDF } from './pdf-export.js';
+import * as Auth from './auth.js';
 
 // Import render functions (will be created inline for now due to circular dependencies)
 // For now, we'll define render functions here that use the imported modules
@@ -56,18 +57,24 @@ const els = {
   themeIconMoon: document.getElementById("themeIconMoon"),
   todayChip: document.getElementById("todayChip"),
   exportPdfBtn: document.getElementById("exportPdfBtn"),
+  deleteSelectedBtn: document.getElementById("deleteSelectedBtn"),
+  selectAllCheckbox: document.getElementById("selectAllCheckbox"),
 
-  fortnightRange: document.getElementById("fortnightRange"),
-  fortnightPrevBtn: document.getElementById("fortnightPrevBtn"),
-  fortnightThisBtn: document.getElementById("fortnightThisBtn"),
-  fortnightNextBtn: document.getElementById("fortnightNextBtn"),
+  loginSection: document.getElementById("loginSection"),
+  appContent: document.getElementById("appContent"),
+  loginEmail: document.getElementById("loginEmail"),
+  loginPassword: document.getElementById("loginPassword"),
+  loginMsg: document.getElementById("loginMsg"),
+  loginSubmitBtn: document.getElementById("loginSubmitBtn"),
+  authSubtitle: document.getElementById("authSubtitle"),
+  authModeToggleBtn: document.getElementById("authModeToggleBtn"),
+  signOutBtn: document.getElementById("signOutBtn"),
 };
 
 // -----------------------------
 // State
 // -----------------------------
 let editingId = null;
-let currentFortnightStart = null; // ISO date string for the start of the current fortnight
 
 // -----------------------------
 // Helper functions that use imported modules
@@ -105,9 +112,9 @@ function setWeekStartToDate(dateISO) {
   els.weekStart.value = Utils.isoFromDate(monday);
 }
 
-function renderWeeklySummary(entries) {
-  const rate = Storage.loadHourlyRate();
+function renderWeeklySummary(entries, rate) {
   const weekISO = els.weekStart.value;
+  const numRate = Number(rate) || 0;
 
   if (!weekISO) {
     els.weekHours.textContent = "0.00";
@@ -126,7 +133,7 @@ function renderWeeklySummary(entries) {
     }
   }
 
-  const weekEarned = weekHours * rate;
+  const weekEarned = weekHours * numRate;
 
   els.weekHours.textContent = Utils.fmtHours(weekHours);
   els.weekEarned.textContent = Utils.fmtMoney(weekEarned);
@@ -135,7 +142,7 @@ function renderWeeklySummary(entries) {
   return { weekHours, weekShifts, weekEarned };
 }
 
-function renderInsights(entries) {
+function renderInsights(entries, rate) {
   // Longest + average
   let longest = 0;
   let total = 0;
@@ -152,7 +159,7 @@ function renderInsights(entries) {
   els.statBestDay.textContent = best.day;
 
   // Week-to-week comparison
-  const rate = Storage.loadHourlyRate();
+  const numRate = Number(rate) || 0;
   const weekISO = els.weekStart.value;
 
   if (!weekISO) {
@@ -178,7 +185,7 @@ function renderInsights(entries) {
   }
 
   const deltaHours = thisWeekHours - prevWeekHours;
-  const deltaEarned = deltaHours * rate;
+  const deltaEarned = deltaHours * numRate;
 
   els.statWeekDeltaHours.textContent = Utils.fmtHours(deltaHours);
   els.statWeekDeltaEarned.textContent = Utils.fmtMoney(deltaEarned);
@@ -200,60 +207,29 @@ function renderInsights(entries) {
   els.statWeekDeltaEarned.classList.add(...parts);
 }
 
-// Initialize or update current fortnight to show the most recent fortnight with data
-function initializeFortnight(entries) {
-  if (currentFortnightStart) return; // Already initialized
-
-  if (entries.length === 0) {
-    // No data, use today's date as the start
-    currentFortnightStart = Utils.isoFromDate(Utils.fortnightStartOf(new Date()));
-    return;
-  }
-
-  // Find the most recent entry date
-  const mostRecentDate = entries[0].date; // entries are sorted by date desc
-  currentFortnightStart = Utils.isoFromDate(Utils.fortnightStartOf(Utils.parseISODateLocal(mostRecentDate)));
-}
-
-function render() {
-  let entries = Storage.pruneOldEntries(Storage.loadEntries(), setMessage);
+async function render() {
+  let entries = await Storage.loadEntries();
+  entries = await Storage.pruneOldEntries(entries, setMessage);
 
   // Sort by date desc, then createdAt desc
   entries.sort((a, b) => (b.date.localeCompare(a.date)) || (b.createdAt - a.createdAt));
-
-  // Initialize fortnight if needed
-  initializeFortnight(entries);
-
-  // Filter entries to current fortnight
-  const fortnightEntries = currentFortnightStart
-    ? entries.filter(e => Utils.shiftFallsInFortnight(e.date, currentFortnightStart))
-    : [];
-
-  // Update fortnight range display
-  if (currentFortnightStart) {
-    els.fortnightRange.textContent = Utils.formatFortnightRange(currentFortnightStart);
-  } else {
-    els.fortnightRange.textContent = "—";
-  }
 
   // Table rows
   els.rows.innerHTML = "";
   let totalHours = 0;
 
-  const rate = Storage.loadHourlyRate();
+  const rate = await Storage.loadHourlyRate();
 
-  if (fortnightEntries.length === 0) {
+  if (entries.length === 0) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td colspan="7" class="px-5 py-8 text-center text-slate-500 dark:text-slate-400">
-        ${entries.length === 0 
-          ? "No shifts yet. Add your first one." 
-          : "No shifts in this pay cycle."}
+      <td colspan="8" class="px-5 py-8 text-center text-slate-500 dark:text-slate-400">
+        No shifts yet. Add your first one.
       </td>
     `;
     els.rows.appendChild(tr);
   } else {
-    for (const e of fortnightEntries) {
+    for (const e of entries) {
       totalHours += e.totalHours;
 
       const overnight = (() => {
@@ -272,6 +248,10 @@ function render() {
       
       const tr = document.createElement("tr");
       tr.innerHTML = `
+        <td class="w-10 px-3 py-3 text-center">
+          <input type="checkbox" class="rowCheckbox rounded border-slate-300" data-id="${e.id}"
+            aria-label="Select row" />
+        </td>
         <td class="px-5 py-3 whitespace-nowrap">
           <div class="flex flex-col gap-0.5">
             <span class="font-medium">${e.date}</span>
@@ -310,35 +290,36 @@ function render() {
     }
   }
 
-  // Update totals (for current fortnight only)
   els.grandTotal.textContent = Utils.fmtHours(totalHours);
   els.totalEarned.textContent = Utils.fmtMoney(totalHours * rate);
 
-  // Weekly summary + insights
-  renderWeeklySummary(entries);
-  renderInsights(entries);
+  // Weekly summary + insights (use rate already loaded above)
+  renderWeeklySummary(entries, rate);
+  renderInsights(entries, rate);
 
   // Wire edit/delete buttons
   document.querySelectorAll(".deleteBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-id");
-      const next = Storage.loadEntries().filter(e => e.id !== id);
-      Storage.saveEntries(next, setMessage);
+      const all = await Storage.loadEntries();
+      const next = all.filter(e => e.id !== id);
+      await Storage.saveEntries(next, setMessage);
 
       if (editingId === id) {
         editingId = null;
         Forms.resetEditMode(els, updatePreview, Utils.todayISO);
       }
 
-      render();
+      await render();
       setMessage("Shift deleted.");
     });
   });
 
   document.querySelectorAll(".editBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-id");
-      const entry = Storage.loadEntries().find(e => e.id === id);
+      const all = await Storage.loadEntries();
+      const entry = all.find(e => e.id === id);
       if (!entry) return;
 
       editingId = id;
@@ -356,6 +337,37 @@ function render() {
       setMessage("Editing shift. Make changes and click Update Shift.", "warn");
     });
   });
+
+  // Select-all checkbox
+  if (els.selectAllCheckbox) {
+    els.selectAllCheckbox.checked = false;
+    els.selectAllCheckbox.onclick = () => {
+      const checkboxes = els.rows.querySelectorAll(".rowCheckbox[data-id]");
+      const checked = els.selectAllCheckbox.checked;
+      checkboxes.forEach(cb => { cb.checked = checked; });
+      updateDeleteSelectedVisibility();
+    };
+  }
+
+  // Row checkboxes: show/hide Delete selected button
+  els.rows.querySelectorAll(".rowCheckbox[data-id]").forEach(cb => {
+    cb.addEventListener("change", updateDeleteSelectedVisibility);
+  });
+
+  // Reset selection state (hide Delete selected, uncheck Select all)
+  updateDeleteSelectedVisibility();
+}
+
+function updateDeleteSelectedVisibility() {
+  const checked = els.rows.querySelectorAll(".rowCheckbox[data-id]:checked");
+  if (els.deleteSelectedBtn) {
+    els.deleteSelectedBtn.classList.toggle("hidden", checked.length === 0);
+  }
+  if (els.selectAllCheckbox) {
+    const all = els.rows.querySelectorAll(".rowCheckbox[data-id]");
+    els.selectAllCheckbox.checked = all.length > 0 && checked.length === all.length;
+    els.selectAllCheckbox.indeterminate = checked.length > 0 && checked.length < all.length;
+  }
 }
 
 function clearFieldsAfterAddOrUpdate(keepDateISO = null) {
@@ -375,18 +387,23 @@ function validateAndCompute() {
   return Forms.validateAndCompute(els, setMessage);
 }
 
-function upsertShift() {
+async function upsertShift() {
   const computed = validateAndCompute();
   if (!computed) return;
 
-  const entries = Storage.pruneOldEntries(Storage.loadEntries(), setMessage);
+  const btn = els.addBtn;
+  const wasDisabled = btn.disabled;
+  btn.disabled = true;
+  try {
+    let entries = await Storage.loadEntries();
+    entries = await Storage.pruneOldEntries(entries, setMessage);
 
   if (editingId) {
     const idx = entries.findIndex(e => e.id === editingId);
     if (idx === -1) {
       setMessage("Couldn't find that shift to update. Try again.", "err");
       resetEditMode();
-      render();
+      await render();
       return;
     }
 
@@ -399,10 +416,9 @@ function upsertShift() {
       totalHours: computed.totalHours,
     };
 
-    Storage.saveEntries(entries, setMessage);
+    await Storage.saveEntries(entries, setMessage);
     setWeekStartToDate(computed.date);
-    setFortnightToDate(computed.date);
-    render();
+    await render();
     setMessage("Shift updated.");
     resetEditMode();
     return;
@@ -421,63 +437,42 @@ function upsertShift() {
   };
 
   entries.push(entry);
-  Storage.saveEntries(entries, setMessage);
+  await Storage.saveEntries(entries, setMessage);
   setWeekStartToDate(entry.date);
-  setFortnightToDate(entry.date);
-  render();
+  await render();
   setMessage("Shift saved.");
   clearFieldsAfterAddOrUpdate(Utils.todayISO());
+  } finally {
+    btn.disabled = wasDisabled;
+  }
 }
 
-function setWeekToThisWeek() {
+async function setWeekToThisWeek() {
   const monday = Utils.mondayOf(new Date());
   els.weekStart.value = Utils.isoFromDate(monday);
-  render();
+  await render();
 }
 
-function shiftWeekBy(deltaDays) {
+async function shiftWeekBy(deltaDays) {
   if (!els.weekStart.value) {
-    setWeekToThisWeek();
+    await setWeekToThisWeek();
     return;
   }
   const d = Utils.parseISODateLocal(els.weekStart.value);
   d.setDate(d.getDate() + deltaDays);
   els.weekStart.value = Utils.isoFromDate(d);
-  render();
+  await render();
 }
 
-// Fortnight navigation functions
-function setFortnightToCurrent() {
-  const today = new Date();
-  currentFortnightStart = Utils.isoFromDate(Utils.fortnightStartOf(today));
-  render();
-}
-
-function setFortnightToDate(dateISO) {
-  currentFortnightStart = Utils.isoFromDate(Utils.fortnightStartOf(Utils.parseISODateLocal(dateISO)));
-  render();
-}
-
-function shiftFortnightBy(deltaDays) {
-  if (!currentFortnightStart) {
-    setFortnightToCurrent();
-    return;
-  }
-  const d = Utils.parseISODateLocal(currentFortnightStart);
-  
-  // Navigate by 14 days, then recalculate the proper fortnight start (1st or 15th)
-  d.setDate(d.getDate() + deltaDays);
-  currentFortnightStart = Utils.isoFromDate(Utils.fortnightStartOf(d));
-  render();
-}
-
-function handleExportPDF() {
+async function handleExportPDF() {
+  let entries = await Storage.loadEntries();
+  entries = await Storage.pruneOldEntries(entries, setMessage);
+  const rate = await Storage.loadHourlyRate();
   exportToPDF(
     els,
     setMessage,
-    Storage.pruneOldEntries,
-    Storage.loadEntries,
-    Storage.loadHourlyRate,
+    entries,
+    rate,
     Utils.getDayName,
     Utils.parseTimeToMinutes,
     Utils.formatTime12Hour,
@@ -488,19 +483,78 @@ function handleExportPDF() {
 }
 
 // -----------------------------
-// Init
+// Auth UI
 // -----------------------------
-els.date.value = Utils.todayISO();
-updateTodayChip();
+function resetAuthForm() {
+  if (els.loginEmail) els.loginEmail.value = "";
+  if (els.loginPassword) els.loginPassword.value = "";
+  if (els.loginMsg) {
+    els.loginMsg.textContent = "";
+    els.loginMsg.className = "auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200";
+  }
+}
 
-// Set default weekly start = Monday of today
-setWeekToThisWeek();
+function showLogin() {
+  if (els.appContent) els.appContent.classList.add("hidden");
+  if (els.loginSection) {
+    els.loginSection.classList.remove("hidden");
+    els.loginSection.classList.add("auth-card-enter");
+    resetAuthForm();
+  }
+}
 
-// Load hourly rate
-els.hourlyRate.value = Storage.loadHourlyRate() || "";
+function showApp() {
+  if (els.loginSection) {
+    els.loginSection.classList.remove("auth-card-enter");
+    els.loginSection.classList.add("hidden");
+  }
+  if (els.appContent) els.appContent.classList.remove("hidden");
+}
 
-// Load theme
-Theme.applyTheme(els, Theme.loadTheme());
+let unsubRealtime = () => {};
+let appInitialized = false;
+let authMode = "signin"; // "signin" | "signup"
+
+function setAuthMode(nextMode) {
+  authMode = nextMode;
+  if (els.authSubtitle) {
+    els.authSubtitle.textContent =
+      authMode === "signup" ? "Create a new account." : "Sign in to your account.";
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.textContent = authMode === "signup" ? "Create account" : "Sign in";
+  }
+  if (els.authModeToggleBtn) {
+    els.authModeToggleBtn.textContent =
+      authMode === "signup" ? "Already have an account? Sign in" : "Create an account";
+  }
+  if (els.loginPassword) {
+    els.loginPassword.autocomplete = authMode === "signup" ? "new-password" : "current-password";
+    els.loginPassword.value = "";
+  }
+  if (els.loginMsg) {
+    els.loginMsg.textContent = "";
+    els.loginMsg.className = "auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200";
+  }
+}
+
+async function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+
+  els.date.value = Utils.todayISO();
+  updateTodayChip();
+  await setWeekToThisWeek();
+  const rate = await Storage.loadHourlyRate();
+  els.hourlyRate.value = String(rate ?? "");
+  unsubRealtime();
+  const userId = await Auth.getUserId();
+  if (userId) {
+    unsubRealtime = Storage.subscribeToShifts(userId, () => render());
+  }
+  await render();
+  updatePreview();
+}
 
 // -----------------------------
 // Events
@@ -515,51 +569,150 @@ Theme.applyTheme(els, Theme.loadTheme());
   });
 });
 
-els.addBtn.addEventListener("click", upsertShift);
+els.addBtn.addEventListener("click", () => upsertShift());
 
 els.cancelEditBtn.addEventListener("click", () => {
   resetEditMode();
   setMessage("Edit cancelled.");
 });
 
-els.clearBtn.addEventListener("click", () => {
+els.clearBtn.addEventListener("click", async () => {
   const confirmed = window.confirm(
     "Are you sure you want to clear all saved shift data? This action cannot be undone."
   );
-  
-  if (!confirmed) {
-    return; // User cancelled, do nothing
-  }
-  
-  Storage.clearAllEntries();
+  if (!confirmed) return;
+  await Storage.clearAllEntries();
   resetEditMode();
-  render();
+  await render();
   setMessage("All saved shift data cleared.");
   updatePreview();
 });
 
-els.exportPdfBtn.addEventListener("click", handleExportPDF);
+els.exportPdfBtn.addEventListener("click", () => handleExportPDF());
 
-els.hourlyRate.addEventListener("input", () => {
+if (els.deleteSelectedBtn) {
+  els.deleteSelectedBtn.addEventListener("click", async () => {
+    const checked = els.rows.querySelectorAll(".rowCheckbox:checked[data-id]");
+    if (checked.length === 0) return;
+    const idsToDelete = Array.from(checked).map((cb) => cb.getAttribute("data-id"));
+    const confirmed = window.confirm(
+      `Delete ${idsToDelete.length} selected shift(s)? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    const entries = (await Storage.loadEntries()).filter((e) => !idsToDelete.includes(e.id));
+    await Storage.saveEntries(entries, setMessage);
+    if (idsToDelete.includes(editingId)) {
+      editingId = null;
+      Forms.resetEditMode(els, updatePreview, Utils.todayISO);
+    }
+    await render();
+    setMessage(idsToDelete.length === 1 ? "Shift deleted." : `${idsToDelete.length} shifts deleted.`);
+  });
+}
+
+els.hourlyRate.addEventListener("input", async () => {
   const rate = Number(els.hourlyRate.value || 0);
-  Storage.saveHourlyRate(rate);
-  render();
+  await Storage.saveHourlyRate(rate);
+  await render();
 });
 
-els.weekStart.addEventListener("change", () => {
-  render();
+els.weekStart.addEventListener("change", async () => {
+  await render();
 });
 
-els.weekThisBtn.addEventListener("click", setWeekToThisWeek);
+els.weekThisBtn.addEventListener("click", () => setWeekToThisWeek());
 els.weekPrevBtn.addEventListener("click", () => shiftWeekBy(-7));
 els.weekNextBtn.addEventListener("click", () => shiftWeekBy(7));
 
-els.fortnightThisBtn.addEventListener("click", setFortnightToCurrent);
-els.fortnightPrevBtn.addEventListener("click", () => shiftFortnightBy(-14));
-els.fortnightNextBtn.addEventListener("click", () => shiftFortnightBy(14));
-
 els.themeToggle.addEventListener("click", () => Theme.toggleTheme(els));
 
-// First paint
-updatePreview();
-render();
+if (els.authModeToggleBtn) {
+  els.authModeToggleBtn.addEventListener("click", () => {
+    setAuthMode(authMode === "signup" ? "signin" : "signup");
+  });
+}
+
+if (els.loginSubmitBtn && els.loginEmail && els.loginPassword && els.loginMsg) {
+  els.loginSubmitBtn.addEventListener("click", async () => {
+    const email = els.loginEmail.value.trim();
+    const password = els.loginPassword.value;
+
+    if (!email) {
+      els.loginMsg.textContent = "Enter your email.";
+      els.loginMsg.className = "text-sm mb-3 min-h-[1.25rem] text-red-600 dark:text-red-400";
+      return;
+    }
+    if (!password || password.length < 6) {
+      els.loginMsg.textContent = "Enter a password (at least 6 characters).";
+      els.loginMsg.className = "text-sm mb-3 min-h-[1.25rem] text-red-600 dark:text-red-400";
+      return;
+    }
+
+    els.loginMsg.textContent = authMode === "signup" ? "Creating account…" : "Signing in…";
+    els.loginMsg.className = "text-sm mb-3 min-h-[1.25rem] text-slate-600 dark:text-slate-400";
+    els.loginSubmitBtn.disabled = true;
+
+    const { error } =
+      authMode === "signup"
+        ? await Auth.signUpWithPassword(email, password)
+        : await Auth.signInWithPassword(email, password);
+
+    if (error) {
+      const msg = error.message || "";
+      const isInvalidCreds = /invalid login credentials|invalid_credentials/i.test(msg);
+      els.loginMsg.textContent = isInvalidCreds
+        ? "Invalid login credentials. If you just signed up, confirm your email from the link we sent."
+        : msg || "Failed. Please try again.";
+      els.loginMsg.className = "auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200 text-red-600 dark:text-red-400";
+      els.loginSubmitBtn.disabled = false;
+      return;
+    }
+
+    if (authMode === "signup") {
+      setAuthMode("signin");
+      if (els.loginPassword) els.loginPassword.value = "";
+      els.loginMsg.textContent = "Account created. Check your email to confirm, then sign in.";
+      els.loginMsg.className = "auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200 text-green-600 dark:text-green-400";
+      els.loginSubmitBtn.disabled = false;
+      return;
+    }
+
+    // Sign-in success: auth state listener will show the app
+    els.loginMsg.textContent = "";
+    els.loginSubmitBtn.disabled = false;
+  });
+}
+
+if (els.signOutBtn) {
+  els.signOutBtn.addEventListener("click", async () => {
+    appInitialized = false;
+    unsubRealtime();
+    await Auth.signOut();
+    showLogin();
+  });
+}
+
+// Load theme once
+Theme.applyTheme(els, Theme.loadTheme());
+
+// Bootstrap: session check then show login or app
+(async () => {
+  const session = await Auth.getSession();
+  if (session) {
+    showApp();
+    await initApp();
+  } else {
+    setAuthMode("signin");
+    showLogin();
+  }
+})();
+
+Auth.onAuthStateChange((session) => {
+  if (session) {
+    showApp();
+    initApp();
+  } else {
+    setAuthMode("signin");
+    showLogin();
+  }
+});

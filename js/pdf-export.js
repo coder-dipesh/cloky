@@ -2,15 +2,11 @@
  * PDF Export Functionality
  */
 
-import * as Storage from './storage.js';
 import * as Utils from './utils.js';
 
-export function exportToPDF(els, setMessage, pruneOldEntries, loadEntries, loadHourlyRate, getDayName, parseTimeToMinutes, formatTime12Hour, fmtHours, fmtMoney, todayISO) {
-  const entries = pruneOldEntries(loadEntries(), setMessage);
-  const rate = loadHourlyRate();
-
+export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTimeToMinutes, formatTime12Hour, fmtHours, fmtMoney, todayISO) {
   if (entries.length === 0) {
-    setMessage(els, "No shifts to export. Add some shifts first.", "err");
+    setMessage("No shifts to export. Add some shifts first.", "err");
     return;
   }
 
@@ -213,9 +209,9 @@ export function exportToPDF(els, setMessage, pruneOldEntries, loadEntries, loadH
     const fileName = "clocky-shifts-" + todayISO() + ".pdf";
     doc.save(fileName);
 
-    setMessage(els, "PDF exported successfully!");
+    setMessage("PDF exported successfully!");
   } catch (error) {
     console.error("PDF export error:", error);
-    setMessage(els, "Failed to export PDF. Please try again.", "err");
+    setMessage("Failed to export PDF. Please try again.", "err");
   }
 }

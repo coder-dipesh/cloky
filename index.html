@@ -26,11 +26,87 @@
     // Enable dark: variants
     tailwind.config = { darkMode: 'class' }
   </script>
+  <style>
+    @keyframes authCardIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes authFieldIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .auth-card-enter {
+      animation: authCardIn 0.35s ease-out forwards;
+    }
+    .auth-field-enter {
+      animation: authFieldIn 0.35s ease-out forwards;
+    }
+    .auth-field-enter:nth-child(1) { animation-delay: 0.05s; }
+    .auth-field-enter:nth-child(2) { animation-delay: 0.1s; }
+    .auth-field-enter:nth-child(3) { animation-delay: 0.15s; }
+    .auth-field-enter:nth-child(4) { animation-delay: 0.2s; }
+    .auth-field-enter:nth-child(5) { animation-delay: 0.25s; }
+    .auth-field-enter:nth-child(6) { animation-delay: 0.3s; }
+    .auth-field-enter:nth-child(7) { animation-delay: 0.35s; }
+    .auth-field-enter:nth-child(8) { animation-delay: 0.4s; }
+    .auth-field-enter:nth-child(9) { animation-delay: 0.45s; }
+    .auth-field-enter:nth-child(10) { animation-delay: 0.5s; }
+    .auth-field-enter:nth-child(11) { animation-delay: 0.55s; }
+    .auth-field-enter:nth-child(12) { animation-delay: 0.6s; }
+    #loginSection input,
+    #loginSection button[type="button"] {
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+  </style>
 </head>
 
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
   <div class="min-h-screen flex items-start justify-center flex-wrap p-6">
     <div class="w-full max-w-5xl">
+
+      <!-- Login (email + password) – shown when not authenticated -->
+      <section id="loginSection" class="hidden bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 max-w-md mx-auto">
+        <div class="flex items-center gap-3 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 1024 1024" aria-hidden="true" class="shrink-0">
+            <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F2A1A"/>
+            <path d="M640 352 C580 292 500 260 424 260 C292 260 188 364 188 512 C188 660 292 764 424 764 C500 764 580 732 640 672" fill="none" stroke="#FFFFFF" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
+          </svg>
+          <h2 class="text-xl font-semibold">Cloky</h2>
+        </div>
+        <p id="authSubtitle" class="auth-field-enter text-sm text-slate-600 dark:text-slate-400 mb-4">Sign in to your account.</p>
+        <div class="auth-field-enter">
+          <label class="block text-sm font-medium mb-2">Email</label>
+          <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 mb-3
+                   focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:border-slate-400
+                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-slate-500 dark:focus:border-slate-500" />
+        </div>
+        <div class="auth-field-enter">
+          <label class="block text-sm font-medium mb-2">Password</label>
+          <input id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 mb-3
+                   focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:border-slate-400
+                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-slate-500 dark:focus:border-slate-500" />
+        </div>
+        <p id="loginMsg" class="auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200"></p>
+        <div class="auth-field-enter">
+          <button id="loginSubmitBtn" type="button"
+            class="w-full rounded-xl bg-slate-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-slate-800
+                   active:scale-[0.98] transition transform duration-150
+                   dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+            Sign in
+          </button>
+        </div>
+        <p class="auth-field-enter mt-3 text-sm text-slate-600 dark:text-slate-400">
+          <button id="authModeToggleBtn" type="button" class="font-medium text-slate-900 underline-offset-2 hover:underline dark:text-white transition opacity hover:opacity-80">
+            Create an account
+          </button>
+        </p>
+      </section>
+
+      <!-- Main app – shown when authenticated -->
+      <div id="appContent" class="hidden w-full">
 
       <!-- Header + Hourly rate (right) -->
       <header class="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -80,6 +156,11 @@
                 </svg>
               </span>
               <span id="themeToggleLabel"></span>
+            </button>
+            <button id="signOutBtn" type="button"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-900">
+              Sign out
             </button>
           </div>
 
@@ -320,14 +401,19 @@
             <div class="flex flex-col md:flex-row items-start md:items-center gap-3">
           <div class="text-sm flex flex-wrap gap-6">
                 <div>
-                  <span class="text-slate-600 dark:text-slate-400">This pay cycle earned:</span>
+                  <span class="text-slate-600 dark:text-slate-400">Total earned:</span>
                   <span id="totalEarned" class="font-semibold ml-2">$0.00</span>
                 </div>
             <div>
-                  <span class="text-slate-600 dark:text-slate-400">This pay cycle hours:</span>
+                  <span class="text-slate-600 dark:text-slate-400">All total hours:</span>
               <span id="grandTotal" class="font-semibold ml-2">0.00</span>
                 </div>
               </div>
+              <button id="deleteSelectedBtn"
+                class="hidden inline-flex items-center gap-2 rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50
+                       dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950">
+                Delete selected
+              </button>
               <button id="exportPdfBtn"
                 class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
                        dark:border-slate-700 dark:hover:bg-slate-950">
@@ -338,38 +424,16 @@
               </button>
             </div>
           </div>
-
-          <!-- Fortnight Pagination Controls -->
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-            <div class="flex items-center gap-2">
-              <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Pay cycle:</label>
-              <span id="fortnightRange" class="text-sm text-slate-600 dark:text-slate-400">—</span>
-            </div>
-
-            <div class="flex gap-2">
-              <button id="fortnightPrevBtn"
-                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                Previous
-              </button>
-              <button id="fortnightThisBtn"
-                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                Current
-              </button>
-              <button id="fortnightNextBtn"
-                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                Next
-              </button>
-            </div>
-          </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
               <tr>
+                <th class="w-10 px-3 py-3 text-center">
+                  <input type="checkbox" id="selectAllCheckbox" class="rowCheckbox rounded border-slate-300"
+                    title="Select all" aria-label="Select all rows" />
+                </th>
                 <th class="text-left px-5 py-3 font-medium">Date</th>
                 <th class="text-left px-5 py-3 font-medium">Clock in</th>
                 <th class="text-left px-5 py-3 font-medium">Clock out</th>
@@ -388,11 +452,12 @@
         Tip: Change the Week starting date to see any week’s totals.
       </footer>
 
+      </div>
+      <!-- /appContent -->
+
     </div>
   </div>
 
   <script type="module" src="js/app.js"></script>
-  <!-- Dummy Data Generation (for development/testing) -->
-  <script src="dummy-data.js"></script>
 </body>
 </html>
