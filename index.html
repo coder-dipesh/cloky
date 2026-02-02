@@ -2,7 +2,7 @@
 <html lang="en" class="">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="description" content="A simple pay calculator for tracking shifts, breaks, and total hours.">
   <meta name="keywords" content="pay calculator, shift tracker, hourly rate, break calculator, total hours, cloky, weekly summary, insights">
   <meta name="author" content="Dipesh Siwakoti">
@@ -57,11 +57,25 @@
     #loginSection button[type="button"] {
       transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
+    /* Mobile: 16px inputs prevent iOS zoom on focus */
+    @media (max-width: 768px) {
+      input, select, button { font-size: 16px !important; }
+      .touch-target { min-height: 44px; min-width: 44px; }
+      /* Today chip: larger tap area, keep readable */
+      #todayChip:not(.hidden) { min-height: 44px; padding: 0.5rem 0.75rem; font-size: 0.875rem; display: inline-flex; align-items: center; }
+      /* Table row actions: tap-friendly on mobile */
+      .editBtn, .deleteBtn { min-height: 44px; min-width: 44px; padding: 0.5rem 0.75rem !important; display: inline-flex; align-items: center; justify-content: center; }
+      table th, table td { padding: 0.75rem 0.5rem; }
+    }
+    /* Safe area for notched phones */
+    body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+    .min-h-screen { padding-top: max(0.25rem, env(safe-area-inset-top)); }
+    .overflow-x-auto.-webkit-overflow-scrolling-touch { -webkit-overflow-scrolling: touch; }
   </style>
 </head>
 
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-  <div class="min-h-screen flex items-start justify-center flex-wrap p-6">
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+  <div class="min-h-screen flex items-start justify-center flex-wrap p-3 sm:p-4 md:p-6">
     <div class="w-full max-w-5xl">
 
       <!-- Login (email + password) – shown when not authenticated -->
@@ -109,13 +123,11 @@
       <div id="appContent" class="hidden w-full">
 
       <!-- Header + Hourly rate (right) -->
-      <header class="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-        <div>
-          <div class="flex justify-between ">
-  
-            <div class="flex items-center gap-3">
-  
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
+      <header class="mb-4 md:mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
+        <div class="min-w-0">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 shrink-0" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
               <!-- Background -->
               <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F172A"/>
             
@@ -137,13 +149,12 @@
               <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
             </svg>
             
-            <h1 class="text-2xl font-semibold">Cloky</h1>
+            <h1 class="text-xl sm:text-2xl font-semibold truncate">Cloky</h1>
           </div>
 
-          <div class="flex items-center gap-2">
-            
-            <button id="themeToggle"
-              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+          <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
+            <button id="themeToggle" type="button"
+              class="touch-target inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-slate-300 px-4 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
                      dark:border-slate-700 dark:hover:bg-slate-900">
               <span id="themeIconSun" class="hidden text-amber-500">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
@@ -158,14 +169,14 @@
               <span id="themeToggleLabel"></span>
             </button>
             <button id="signOutBtn" type="button"
-              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+              class="touch-target inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
                      dark:border-slate-700 dark:hover:bg-slate-900">
               Sign out
             </button>
           </div>
 
           </div>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             Track shifts, breaks, and total hours. Shift data auto-clears after 30 days.
           </p>
         </div>
@@ -178,7 +189,7 @@
             min="0"
             step="0.01"
             placeholder="e.g. 25"
-            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                    focus:outline-none focus:ring-2 focus:ring-slate-900/10
                    dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-white/10"
           />
@@ -187,18 +198,18 @@
       </header>
 
       <!-- Form -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label class="flex items-center gap-2 text-sm font-medium mb-1">
               Date
-              <span id="todayChip" class="hidden text-[11px] px-2 py-0.5 rounded-full border border-slate-300 bg-slate-50 text-slate-700
+              <span id="todayChip" class="hidden touch-target text-xs sm:text-xs px-3 py-2 sm:px-2.5 sm:py-1 rounded-full border border-slate-300 bg-slate-50 text-slate-700 inline-flex items-center
                                           dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                 Today
               </span>
             </label>
             <input id="date" type="date"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
@@ -206,7 +217,7 @@
           <div>
             <label class="block text-sm font-medium mb-1">Break (minutes)</label>
             <input id="breakMin" type="number" min="0" value="0" placeholder="e.g. 30"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
@@ -214,7 +225,7 @@
           <div>
             <label class="block text-sm font-medium mb-1">Clock in</label>
             <input id="clockIn" type="time"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
@@ -222,14 +233,14 @@
           <div>
             <label class="block text-sm font-medium mb-1">Clock out</label>
             <input id="clockOut" type="time"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
                      focus:outline-none focus:ring-2 focus:ring-slate-900/10
                      dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Overnight shifts are supported.</p>
           </div>
         </div>
 
-        <div class="mt-4 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <div class="mt-4 flex flex-col sm:flex-row gap-3 lg:items-center lg:justify-between">
           <div class="text-sm flex flex-wrap items-center gap-3">
             <div>
               <span class="text-slate-600 dark:text-slate-400">Total hours after break:</span>
@@ -241,21 +252,19 @@
             </span>
           </div>
 
-          <div class="flex flex-wrap gap-2">
-            <button id="addBtn"
-              class="rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800
+          <div class="flex flex-col xs:flex-row gap-2 sm:flex-wrap">
+            <button id="addBtn" type="button"
+              class="touch-target w-full sm:w-auto rounded-xl bg-slate-900 text-white px-4 py-3 sm:py-2 text-sm font-medium hover:bg-slate-800
                      dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
               Add Shift
             </button>
-
-            <button id="cancelEditBtn"
-              class="hidden rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
+            <button id="cancelEditBtn" type="button"
+              class="hidden touch-target w-full sm:w-auto rounded-xl border border-slate-300 px-4 py-3 sm:py-2 text-sm font-medium hover:bg-slate-100
                      dark:border-slate-700 dark:hover:bg-slate-950">
               Cancel
             </button>
-
-            <button id="clearBtn"
-              class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
+            <button id="clearBtn" type="button"
+              class="touch-target w-full sm:w-auto rounded-xl border border-slate-300 px-4 py-3 sm:py-2 text-sm font-medium hover:bg-slate-100
                      dark:border-slate-700 dark:hover:bg-slate-950">
               Clear All
             </button>
@@ -266,33 +275,34 @@
       </div>
 
       <!-- Weekly Summary -->
-      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold">Weekly Summary</h2>
             <p class="text-xs text-slate-500 dark:text-slate-400">Weeks run Monday to Sunday.</p>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Week starting</label>
-            <input id="weekStart" type="date"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
-
-            <div class="flex gap-2">
-              <button id="weekThisBtn"
-                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+          <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+            <div class="flex flex-col xs:flex-row gap-2 sm:items-center">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-200 shrink-0">Week starting</label>
+              <input id="weekStart" type="date"
+                class="w-full sm:w-auto min-h-[44px] rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                       dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button id="weekThisBtn" type="button"
+                class="touch-target flex-1 sm:flex-none min-w-[100px] rounded-xl border border-slate-300 px-3 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
                        dark:border-slate-700 dark:hover:bg-slate-950">
                 This week
               </button>
-              <button id="weekPrevBtn"
-                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+              <button id="weekPrevBtn" type="button"
+                class="touch-target flex-1 sm:flex-none min-w-[100px] rounded-xl border border-slate-300 px-3 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
                        dark:border-slate-700 dark:hover:bg-slate-950">
                 Previous
               </button>
-              <button id="weekNextBtn"
-                class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100
+              <button id="weekNextBtn" type="button"
+                class="touch-target flex-1 sm:flex-none min-w-[100px] rounded-xl border border-slate-300 px-3 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
                        dark:border-slate-700 dark:hover:bg-slate-950">
                 Next
               </button>
@@ -394,40 +404,41 @@
 
       <!-- Saved Shifts + Totals -->
       <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div class="p-5 flex flex-col gap-3">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <h2 class="text-lg font-semibold">Saved Shifts</h2>
-
-            <div class="flex flex-col md:flex-row items-start md:items-center gap-3">
-          <div class="text-sm flex flex-wrap gap-6">
+        <div class="p-4 sm:p-5 flex flex-col gap-3">
+          <div class="flex flex-col gap-3">
+            <h2 class="text-lg font-semibold">Saved Shifts</h2>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+              <div class="text-sm flex flex-wrap gap-4 sm:gap-6">
                 <div>
                   <span class="text-slate-600 dark:text-slate-400">Total earned:</span>
                   <span id="totalEarned" class="font-semibold ml-2">$0.00</span>
                 </div>
-            <div>
+                <div>
                   <span class="text-slate-600 dark:text-slate-400">All total hours:</span>
-              <span id="grandTotal" class="font-semibold ml-2">0.00</span>
+                  <span id="grandTotal" class="font-semibold ml-2">0.00</span>
                 </div>
               </div>
-              <button id="deleteSelectedBtn"
-                class="hidden inline-flex items-center gap-2 rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50
-                       dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950">
-                Delete selected
-              </button>
-              <button id="exportPdfBtn"
-                class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export PDF
-              </button>
+              <div class="flex flex-wrap gap-2">
+                <button id="deleteSelectedBtn" type="button"
+                  class="hidden touch-target inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 px-4 py-2.5 sm:py-2 text-sm font-medium text-red-700 hover:bg-red-50
+                         dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950">
+                  Delete selected
+                </button>
+                <button id="exportPdfBtn" type="button"
+                  class="touch-target inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
+                         dark:border-slate-700 dark:hover:bg-slate-950">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4 shrink-0">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export PDF
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+        <div class="overflow-x-auto -webkit-overflow-scrolling-touch">
+          <table class="w-full text-sm min-w-[640px]">
             <thead class="bg-slate-100 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
               <tr>
                 <th class="w-10 px-3 py-3 text-center">
@@ -446,6 +457,7 @@
             <tbody id="rows" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
           </table>
         </div>
+        <div id="paginationWrap" class="hidden px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 flex-wrap"></div>
       </div>
 
       <footer class="mt-6 text-xs text-slate-500 dark:text-slate-400">

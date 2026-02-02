@@ -49,11 +49,21 @@ export async function loadEntries() {
     return [];
   }
   const raw = (data || []).map(rowToEntry);
-  const seen = new Set();
+  // Normalize time to HH:mm so "10:00" and "10:00:00" match
+  const norm = (e) => ({
+    date: String(e.date || "").trim(),
+    clockIn: String(e.clockIn || "").trim().slice(0, 5),
+    clockOut: String(e.clockOut || "").trim().slice(0, 5),
+    breakMin: Number(e.breakMin) || 0,
+  });
+  const seenKeys = new Set();
+  const seenIds = new Set();
   const entries = raw.filter((e) => {
-    const key = `${e.date}|${e.clockIn}|${e.clockOut}|${e.breakMin}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const n = norm(e);
+    const key = `${n.date}|${n.clockIn}|${n.clockOut}|${n.breakMin}`;
+    if (seenKeys.has(key) || seenIds.has(e.id)) return false;
+    seenKeys.add(key);
+    seenIds.add(e.id);
     return true;
   });
   // If DB had duplicates, persist deduped list once so they stop accumulating

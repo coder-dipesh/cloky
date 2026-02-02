@@ -59,6 +59,7 @@ const els = {
   exportPdfBtn: document.getElementById("exportPdfBtn"),
   deleteSelectedBtn: document.getElementById("deleteSelectedBtn"),
   selectAllCheckbox: document.getElementById("selectAllCheckbox"),
+  paginationWrap: document.getElementById("paginationWrap"),
 
   loginSection: document.getElementById("loginSection"),
   appContent: document.getElementById("appContent"),
@@ -75,6 +76,8 @@ const els = {
 // State
 // -----------------------------
 let editingId = null;
+const PAGE_SIZE = 10;
+let currentPage = 1;
 
 // -----------------------------
 // Helper functions that use imported modules
@@ -214,12 +217,20 @@ async function render() {
   // Sort by date desc, then createdAt desc
   entries.sort((a, b) => (b.date.localeCompare(a.date)) || (b.createdAt - a.createdAt));
 
-  // Table rows
-  els.rows.innerHTML = "";
+  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageEntries = entries.slice(start, start + PAGE_SIZE);
+
+  // Totals use ALL entries
   let totalHours = 0;
+  for (const e of entries) totalHours += e.totalHours;
 
   const rate = await Storage.loadHourlyRate();
 
+  // Table rows (only current page)
+  els.rows.innerHTML = "";
   if (entries.length === 0) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -229,9 +240,7 @@ async function render() {
     `;
     els.rows.appendChild(tr);
   } else {
-    for (const e of entries) {
-      totalHours += e.totalHours;
-
+    for (const e of pageEntries) {
       const overnight = (() => {
         try {
           const inM = Utils.parseTimeToMinutes(e.clockIn);
@@ -273,17 +282,19 @@ async function render() {
         <td class="px-5 py-3 whitespace-nowrap">${e.breakMin} min</td>
         <td class="px-5 py-3 whitespace-nowrap font-medium">${Utils.fmtHours(e.totalHours)}</td>
         <td class="px-5 py-3 whitespace-nowrap font-medium">${Utils.fmtMoney(earned)}</td>
-        <td class="px-5 py-3 text-right whitespace-nowrap">
-          <button data-id="${e.id}"
-            class="editBtn rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 hover:bg-slate-100
-                   dark:border-slate-700 dark:hover:bg-slate-950">
-            Edit
-          </button>
-          <button data-id="${e.id}"
-            class="deleteBtn rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 hover:bg-slate-100 ml-2
-                   dark:border-slate-700 dark:hover:bg-slate-950">
-            Delete
-          </button>
+        <td class="px-3 sm:px-5 py-3 text-right whitespace-nowrap">
+          <div class="flex items-center justify-end gap-2">
+            <button data-id="${e.id}" type="button"
+              class="editBtn rounded-lg px-3 py-1.5 sm:py-1.5 text-xs font-medium border border-slate-300 hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-950">
+              Edit
+            </button>
+            <button data-id="${e.id}" type="button"
+              class="deleteBtn rounded-lg px-3 py-1.5 sm:py-1.5 text-xs font-medium border border-slate-300 hover:bg-slate-100
+                     dark:border-slate-700 dark:hover:bg-slate-950">
+              Delete
+            </button>
+          </div>
         </td>
       `;
       els.rows.appendChild(tr);
@@ -356,6 +367,59 @@ async function render() {
 
   // Reset selection state (hide Delete selected, uncheck Select all)
   updateDeleteSelectedVisibility();
+
+  // Pagination
+  if (els.paginationWrap) {
+    els.paginationWrap.innerHTML = "";
+    if (entries.length > PAGE_SIZE) {
+      els.paginationWrap.classList.remove("hidden");
+      const prevBtn = document.createElement("button");
+      prevBtn.type = "button";
+      prevBtn.textContent = "Prev";
+      prevBtn.className = "rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          render();
+        }
+      });
+      els.paginationWrap.appendChild(prevBtn);
+
+      const maxVisible = 7;
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+      if (endPage - startPage + 1 < maxVisible) startPage = Math.max(1, endPage - maxVisible + 1);
+      for (let p = startPage; p <= endPage; p++) {
+        const numBtn = document.createElement("button");
+        numBtn.type = "button";
+        numBtn.textContent = String(p);
+        numBtn.className = p === currentPage
+          ? "rounded-lg border-2 border-slate-900 bg-slate-900 text-white px-3 py-1.5 text-sm font-medium dark:border-white dark:bg-white dark:text-slate-900"
+          : "rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800";
+        numBtn.addEventListener("click", () => {
+          currentPage = p;
+          render();
+        });
+        els.paginationWrap.appendChild(numBtn);
+      }
+
+      const nextBtn = document.createElement("button");
+      nextBtn.type = "button";
+      nextBtn.textContent = "Next";
+      nextBtn.className = "rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.addEventListener("click", () => {
+        if (currentPage < totalPages) {
+          currentPage += 1;
+          render();
+        }
+      });
+      els.paginationWrap.appendChild(nextBtn);
+    } else {
+      els.paginationWrap.classList.add("hidden");
+    }
+  }
 }
 
 function updateDeleteSelectedVisibility() {
