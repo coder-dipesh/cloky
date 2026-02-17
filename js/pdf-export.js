@@ -4,7 +4,7 @@
 
 import * as Utils from './utils.js';
 
-export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTimeToMinutes, formatTime12Hour, fmtHours, fmtMoney, todayISO) {
+export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTimeToMinutes, formatTime12Hour, fmtHours, fmtMoney, todayISO, filenameSuffix = "") {
   if (entries.length === 0) {
     setMessage("No shifts to export. Add some shifts first.", "err");
     return;
@@ -206,7 +206,8 @@ export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTim
     }
 
     // Save PDF
-    const fileName = "clocky-shifts-" + todayISO() + ".pdf";
+    const base = "clocky-shifts-" + todayISO();
+    const fileName = filenameSuffix ? `${base}-${filenameSuffix}.pdf` : `${base}.pdf`;
     doc.save(fileName);
 
     setMessage("PDF exported successfully!");

@@ -57,6 +57,7 @@ const els = {
   themeIconMoon: document.getElementById("themeIconMoon"),
   todayChip: document.getElementById("todayChip"),
   exportPdfBtn: document.getElementById("exportPdfBtn"),
+  exportSelectedBtn: document.getElementById("exportSelectedBtn"),
   deleteSelectedBtn: document.getElementById("deleteSelectedBtn"),
   selectAllCheckbox: document.getElementById("selectAllCheckbox"),
   paginationWrap: document.getElementById("paginationWrap"),
@@ -427,6 +428,9 @@ function updateDeleteSelectedVisibility() {
   if (els.deleteSelectedBtn) {
     els.deleteSelectedBtn.classList.toggle("hidden", checked.length === 0);
   }
+  if (els.exportSelectedBtn) {
+    els.exportSelectedBtn.classList.toggle("hidden", checked.length === 0);
+  }
   if (els.selectAllCheckbox) {
     const all = els.rows.querySelectorAll(".rowCheckbox[data-id]");
     els.selectAllCheckbox.checked = all.length > 0 && checked.length === all.length;
@@ -546,6 +550,35 @@ async function handleExportPDF() {
   );
 }
 
+async function handleExportSelectedPDF() {
+  const checked = els.rows.querySelectorAll(".rowCheckbox:checked[data-id]");
+  if (checked.length === 0) {
+    setMessage("Select one or more shifts to export.", "err");
+    return;
+  }
+  const selectedIds = Array.from(checked).map((cb) => cb.getAttribute("data-id"));
+  let entries = await Storage.loadEntries();
+  entries = entries.filter((e) => selectedIds.includes(e.id));
+  if (entries.length === 0) {
+    setMessage("No matching shifts to export.", "err");
+    return;
+  }
+  const rate = await Storage.loadHourlyRate();
+  exportToPDF(
+    els,
+    setMessage,
+    entries,
+    rate,
+    Utils.getDayName,
+    Utils.parseTimeToMinutes,
+    Utils.formatTime12Hour,
+    Utils.fmtHours,
+    Utils.fmtMoney,
+    Utils.todayISO,
+    "selected"
+  );
+}
+
 // -----------------------------
 // Auth UI
 // -----------------------------
@@ -653,6 +686,10 @@ els.clearBtn.addEventListener("click", async () => {
 });
 
 els.exportPdfBtn.addEventListener("click", () => handleExportPDF());
+
+if (els.exportSelectedBtn) {
+  els.exportSelectedBtn.addEventListener("click", () => handleExportSelectedPDF());
+}
 
 if (els.deleteSelectedBtn) {
   els.deleteSelectedBtn.addEventListener("click", async () => {

@@ -1,2 +1,5 @@
 dummy-data.js
 js/supabase-config.js
+docs/
+.vscode/
+.DS_Store
