@@ -79,6 +79,8 @@ const els = {
 let editingId = null;
 const PAGE_SIZE = 10;
 let currentPage = 1;
+/** Set of row IDs selected across all pages (persists when changing pages). */
+let selectedRowIds = new Set();
 
 // -----------------------------
 // Helper functions that use imported modules
@@ -233,6 +235,7 @@ async function render() {
   // Table rows (only current page)
   els.rows.innerHTML = "";
   if (entries.length === 0) {
+    selectedRowIds.clear();
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td colspan="8" class="px-5 py-8 text-center text-slate-500 dark:text-slate-400">
@@ -241,6 +244,11 @@ async function render() {
     `;
     els.rows.appendChild(tr);
   } else {
+    // Prune selectedRowIds to only ids that still exist in entries
+    const entryIds = new Set(entries.map((e) => e.id));
+    for (const id of selectedRowIds) {
+      if (!entryIds.has(id)) selectedRowIds.delete(id);
+    }
     for (const e of pageEntries) {
       const overnight = (() => {
         try {
@@ -299,6 +307,8 @@ async function render() {
         </td>
       `;
       els.rows.appendChild(tr);
+      const rowCb = tr.querySelector(".rowCheckbox[data-id]");
+      if (rowCb) rowCb.checked = selectedRowIds.has(e.id);
     }
   }
 
@@ -350,23 +360,34 @@ async function render() {
     });
   });
 
-  // Select-all checkbox
+  // Select-all checkbox: toggle selection for all rows on current page
   if (els.selectAllCheckbox) {
-    els.selectAllCheckbox.checked = false;
     els.selectAllCheckbox.onclick = () => {
       const checkboxes = els.rows.querySelectorAll(".rowCheckbox[data-id]");
       const checked = els.selectAllCheckbox.checked;
-      checkboxes.forEach(cb => { cb.checked = checked; });
+      checkboxes.forEach((cb) => {
+        const id = cb.getAttribute("data-id");
+        if (id) {
+          if (checked) selectedRowIds.add(id);
+          else selectedRowIds.delete(id);
+        }
+      });
       updateDeleteSelectedVisibility();
     };
   }
 
-  // Row checkboxes: show/hide Delete selected button
-  els.rows.querySelectorAll(".rowCheckbox[data-id]").forEach(cb => {
-    cb.addEventListener("change", updateDeleteSelectedVisibility);
+  // Row checkboxes: keep selectedRowIds in sync and update visibility
+  els.rows.querySelectorAll(".rowCheckbox[data-id]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      const id = cb.getAttribute("data-id");
+      if (id) {
+        if (cb.checked) selectedRowIds.add(id);
+        else selectedRowIds.delete(id);
+      }
+      updateDeleteSelectedVisibility();
+    });
   });
 
-  // Reset selection state (hide Delete selected, uncheck Select all)
   updateDeleteSelectedVisibility();
 
   // Pagination
@@ -424,17 +445,26 @@ async function render() {
 }
 
 function updateDeleteSelectedVisibility() {
-  const checked = els.rows.querySelectorAll(".rowCheckbox[data-id]:checked");
+  // Sync current-page checkboxes from persistent selection state
+  els.rows.querySelectorAll(".rowCheckbox[data-id]").forEach((cb) => {
+    const id = cb.getAttribute("data-id");
+    if (id) cb.checked = selectedRowIds.has(id);
+  });
+
+  const hasSelection = selectedRowIds.size > 0;
   if (els.deleteSelectedBtn) {
-    els.deleteSelectedBtn.classList.toggle("hidden", checked.length === 0);
+    els.deleteSelectedBtn.classList.toggle("hidden", !hasSelection);
   }
   if (els.exportSelectedBtn) {
-    els.exportSelectedBtn.classList.toggle("hidden", checked.length === 0);
+    els.exportSelectedBtn.classList.toggle("hidden", !hasSelection);
   }
   if (els.selectAllCheckbox) {
-    const all = els.rows.querySelectorAll(".rowCheckbox[data-id]");
-    els.selectAllCheckbox.checked = all.length > 0 && checked.length === all.length;
-    els.selectAllCheckbox.indeterminate = checked.length > 0 && checked.length < all.length;
+    const allOnPage = els.rows.querySelectorAll(".rowCheckbox[data-id]");
+    const selectedOnPage = Array.from(allOnPage).filter((cb) =>
+      selectedRowIds.has(cb.getAttribute("data-id"))
+    ).length;
+    els.selectAllCheckbox.checked = allOnPage.length > 0 && selectedOnPage === allOnPage.length;
+    els.selectAllCheckbox.indeterminate = selectedOnPage > 0 && selectedOnPage < allOnPage.length;
   }
 }
 
@@ -551,14 +581,12 @@ async function handleExportPDF() {
 }
 
 async function handleExportSelectedPDF() {
-  const checked = els.rows.querySelectorAll(".rowCheckbox:checked[data-id]");
-  if (checked.length === 0) {
+  if (selectedRowIds.size === 0) {
     setMessage("Select one or more shifts to export.", "err");
     return;
   }
-  const selectedIds = Array.from(checked).map((cb) => cb.getAttribute("data-id"));
   let entries = await Storage.loadEntries();
-  entries = entries.filter((e) => selectedIds.includes(e.id));
+  entries = entries.filter((e) => selectedRowIds.has(e.id));
   if (entries.length === 0) {
     setMessage("No matching shifts to export.", "err");
     return;
@@ -693,19 +721,19 @@ if (els.exportSelectedBtn) {
 
 if (els.deleteSelectedBtn) {
   els.deleteSelectedBtn.addEventListener("click", async () => {
-    const checked = els.rows.querySelectorAll(".rowCheckbox:checked[data-id]");
-    if (checked.length === 0) return;
-    const idsToDelete = Array.from(checked).map((cb) => cb.getAttribute("data-id"));
+    if (selectedRowIds.size === 0) return;
+    const idsToDelete = Array.from(selectedRowIds);
     const confirmed = window.confirm(
       `Delete ${idsToDelete.length} selected shift(s)? This cannot be undone.`
     );
     if (!confirmed) return;
-    const entries = (await Storage.loadEntries()).filter((e) => !idsToDelete.includes(e.id));
+    const entries = (await Storage.loadEntries()).filter((e) => !selectedRowIds.has(e.id));
     await Storage.saveEntries(entries, setMessage);
-    if (idsToDelete.includes(editingId)) {
+    if (selectedRowIds.has(editingId)) {
       editingId = null;
       Forms.resetEditMode(els, updatePreview, Utils.todayISO);
     }
+    selectedRowIds.clear();
     await render();
     setMessage(idsToDelete.length === 1 ? "Shift deleted." : `${idsToDelete.length} shifts deleted.`);
   });
