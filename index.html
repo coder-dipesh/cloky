@@ -15,8 +15,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Cloky">
   <meta name="application-name" content="Cloky">
-  <!-- Favicon -->
-  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml">   
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <!-- Favicon & PWA -->
+  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/favicon.svg">
+  <link rel="manifest" href="./manifest.webmanifest">
 
 
   <title>Cloky</title>
@@ -27,35 +31,88 @@
     tailwind.config = { darkMode: 'class' }
   </script>
   <style>
+    /* Auth page: gradient background */
+    .auth-page-wrap {
+      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #fffbeb 100%);
+    }
+    .dark .auth-page-wrap {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+    /* Subtle grid pattern overlay */
+    .auth-page-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.15) 1px, transparent 0);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+    .dark .auth-page-wrap::before {
+      background-image: radial-gradient(circle at 1px 1px, rgba(71, 85, 105, 0.25) 1px, transparent 0);
+    }
+    /* Card entrance */
     @keyframes authCardIn {
-      from { opacity: 0; transform: translateY(-12px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     @keyframes authFieldIn {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    @keyframes authLogoFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
     .auth-card-enter {
-      animation: authCardIn 0.35s ease-out forwards;
+      animation: authCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
     .auth-field-enter {
-      animation: authFieldIn 0.35s ease-out forwards;
+      animation: authFieldIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
-    .auth-field-enter:nth-child(1) { animation-delay: 0.05s; }
-    .auth-field-enter:nth-child(2) { animation-delay: 0.1s; }
-    .auth-field-enter:nth-child(3) { animation-delay: 0.15s; }
-    .auth-field-enter:nth-child(4) { animation-delay: 0.2s; }
-    .auth-field-enter:nth-child(5) { animation-delay: 0.25s; }
-    .auth-field-enter:nth-child(6) { animation-delay: 0.3s; }
-    .auth-field-enter:nth-child(7) { animation-delay: 0.35s; }
-    .auth-field-enter:nth-child(8) { animation-delay: 0.4s; }
-    .auth-field-enter:nth-child(9) { animation-delay: 0.45s; }
-    .auth-field-enter:nth-child(10) { animation-delay: 0.5s; }
-    .auth-field-enter:nth-child(11) { animation-delay: 0.55s; }
-    .auth-field-enter:nth-child(12) { animation-delay: 0.6s; }
+    .auth-field-enter:nth-child(1) { animation-delay: 0.06s; }
+    .auth-field-enter:nth-child(2) { animation-delay: 0.12s; }
+    .auth-field-enter:nth-child(3) { animation-delay: 0.18s; }
+    .auth-field-enter:nth-child(4) { animation-delay: 0.24s; }
+    .auth-field-enter:nth-child(5) { animation-delay: 0.3s; }
+    .auth-field-enter:nth-child(6) { animation-delay: 0.36s; }
+    .auth-field-enter:nth-child(7) { animation-delay: 0.42s; }
+    .auth-field-enter:nth-child(8) { animation-delay: 0.48s; }
+    .auth-field-enter:nth-child(9) { animation-delay: 0.54s; }
+    .auth-field-enter:nth-child(10) { animation-delay: 0.6s; }
+    .auth-field-enter:nth-child(11) { animation-delay: 0.66s; }
+    .auth-field-enter:nth-child(12) { animation-delay: 0.72s; }
+    .auth-logo-float {
+      animation: authLogoFloat 4s ease-in-out infinite;
+    }
     #loginSection input,
     #loginSection button[type="button"] {
-      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    #loginSection input:focus {
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+    }
+    .dark #loginSection input:focus {
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+    .auth-btn-primary {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .auth-btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+    }
+    .dark .auth-btn-primary:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .auth-btn-primary:active {
+      transform: translateY(0);
+    }
+    .auth-btn-ghost {
+      transition: opacity 0.2s ease, transform 0.15s ease;
+    }
+    .auth-btn-ghost:hover {
+      opacity: 1;
+      transform: translateY(-0.5px);
     }
     /* Mobile: 16px inputs prevent iOS zoom on focus */
     @media (max-width: 768px) {
@@ -79,6 +136,14 @@
     /* Prevent horizontal overflow on mobile: let content shrink and text wrap */
     #appContent, #appContent > * { min-width: 0; }
     #appContent p, #appContent .text-xs, #appContent .text-sm { overflow-wrap: break-word; word-break: break-word; }
+    /* PWA standalone: full viewport, safe areas for notches/home indicator */
+    @media (display-mode: standalone), (display-mode: fullscreen) {
+      body { background: #0f172a; }
+      .min-h-screen { min-height: 100dvh; min-height: 100vh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+      .auth-page-wrap { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    }
+    /* Prevent pull-to-refresh and overscroll in standalone when not intended */
+    html.standalone { overscroll-behavior-y: contain; }
   </style>
 </head>
 
@@ -86,46 +151,70 @@
   <div class="min-h-screen flex items-start justify-center flex-wrap p-3 sm:p-4 md:p-6 overflow-x-hidden">
     <div class="w-full max-w-5xl min-w-0">
 
-      <!-- Login (email + password) – shown when not authenticated -->
-      <section id="loginSection" class="hidden bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 max-w-md mx-auto">
-        <div class="flex items-center gap-3 mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 1024 1024" aria-hidden="true" class="shrink-0">
-            <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F2A1A"/>
-            <path d="M640 352 C580 292 500 260 424 260 C292 260 188 364 188 512 C188 660 292 764 424 764 C500 764 580 732 640 672" fill="none" stroke="#FFFFFF" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
-          </svg>
-          <h2 class="text-xl font-semibold">Cloky</h2>
-        </div>
-        <p id="authSubtitle" class="auth-field-enter text-sm text-slate-600 dark:text-slate-400 mb-4">Sign in to your account.</p>
-        <div class="auth-field-enter">
-          <label class="block text-sm font-medium mb-2">Email</label>
-          <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"
-            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 mb-3
-                   focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:border-slate-400
-                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-slate-500 dark:focus:border-slate-500" />
-        </div>
-        <div class="auth-field-enter">
-          <label class="block text-sm font-medium mb-2">Password</label>
-          <input id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password"
-            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 mb-3
-                   focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:border-slate-400
-                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-slate-500 dark:focus:border-slate-500" />
-        </div>
-        <p id="loginMsg" class="auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200"></p>
-        <div class="auth-field-enter">
-          <button id="loginSubmitBtn" type="button"
-            class="w-full rounded-xl bg-slate-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-slate-800
-                   active:scale-[0.98] transition transform duration-150
-                   dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
-            Sign in
-          </button>
-        </div>
-        <p class="auth-field-enter mt-3 text-sm text-slate-600 dark:text-slate-400">
-          <button id="authModeToggleBtn" type="button" class="font-medium text-slate-900 underline-offset-2 hover:underline dark:text-white transition opacity hover:opacity-80">
-            Create an account
-          </button>
-        </p>
-      </section>
+      <!-- Auth page (login/signup) – full-screen gradient when shown -->
+      <div id="authPageWrap" class="hidden fixed inset-0 z-10 flex items-center justify-center p-4 auth-page-wrap">
+        <section id="loginSection" class="relative w-full max-w-md bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-black/30 border border-slate-200/80 dark:border-slate-700/80 p-8 sm:p-10">
+          <div class="flex items-center gap-4 mb-8">
+            <div class="auth-logo-float flex shrink-0 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-100 dark:to-slate-200 p-2.5 shadow-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 1024 1024" aria-hidden="true" class="text-white dark:text-slate-900">
+                <path d="M640 352 C580 292 500 260 424 260 C292 260 188 364 188 512 C188 660 292 764 424 764 C500 764 580 732 640 672" fill="none" stroke="currentColor" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Cloky</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400">Track shifts & pay</p>
+            </div>
+          </div>
+          <p id="authSubtitle" class="auth-field-enter text-sm text-slate-600 dark:text-slate-400 mb-5">Sign in to your account.</p>
+          <div class="auth-field-enter">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email</label>
+            <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50/50 dark:bg-slate-800/50 px-4 py-2.5 mb-4
+                     focus:outline-none focus:ring-2 focus:ring-slate-400/40 focus:border-slate-400
+                     dark:border-slate-600 dark:focus:ring-slate-500 dark:focus:border-slate-500 placeholder:text-slate-400 dark:placeholder:text-slate-500" />
+          </div>
+          <div class="auth-field-enter">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Password</label>
+            <div class="relative mb-4">
+              <input id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password"
+                class="w-full rounded-xl border border-slate-300 bg-slate-50/50 dark:bg-slate-800/50 px-4 py-2.5 pr-11
+                       focus:outline-none focus:ring-2 focus:ring-slate-400/40 focus:border-slate-400
+                       dark:border-slate-600 dark:focus:ring-slate-500 dark:focus:border-slate-500 placeholder:text-slate-400 dark:placeholder:text-slate-500" />
+              <button id="passwordToggle" type="button" tabindex="-1" aria-label="Show password"
+                class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors touch-target">
+                <span id="passwordToggleIconShow" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </span>
+                <span id="passwordToggleIconHide" class="hidden" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                    <line x1="2" y1="2" x2="22" y2="22"/>
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+          <p id="loginMsg" class="auth-field-enter text-sm mb-4 min-h-[1.25rem] transition-colors duration-200"></p>
+          <div class="auth-field-enter">
+            <button id="loginSubmitBtn" type="button"
+              class="auth-btn-primary w-full rounded-xl bg-slate-900 text-white px-4 py-3 text-sm font-semibold hover:bg-slate-800 active:scale-[0.99]
+                     dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+              Sign in
+            </button>
+          </div>
+          <p class="auth-field-enter mt-5 text-sm text-slate-600 dark:text-slate-400">
+            <button id="authModeToggleBtn" type="button" class="auth-btn-ghost font-medium text-slate-900 dark:text-white underline-offset-2 hover:underline">
+              Create an account
+            </button>
+          </p>
+        </section>
+      </div>
 
       <!-- Main app – shown when authenticated -->
       <div id="appContent" class="hidden w-full min-w-0">
@@ -487,5 +576,16 @@
   </div>
 
   <script type="module" src="js/app.js"></script>
+  <script>
+    // PWA: standalone detection and service worker registration
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      document.documentElement.classList.add('standalone');
+    }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function () {});
+      });
+    }
+  </script>
 </body>
 </html>

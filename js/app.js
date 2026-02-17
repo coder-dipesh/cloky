@@ -62,10 +62,14 @@ const els = {
   selectAllCheckbox: document.getElementById("selectAllCheckbox"),
   paginationWrap: document.getElementById("paginationWrap"),
 
+  authPageWrap: document.getElementById("authPageWrap"),
   loginSection: document.getElementById("loginSection"),
   appContent: document.getElementById("appContent"),
   loginEmail: document.getElementById("loginEmail"),
   loginPassword: document.getElementById("loginPassword"),
+  passwordToggle: document.getElementById("passwordToggle"),
+  passwordToggleIconShow: document.getElementById("passwordToggleIconShow"),
+  passwordToggleIconHide: document.getElementById("passwordToggleIconHide"),
   loginMsg: document.getElementById("loginMsg"),
   loginSubmitBtn: document.getElementById("loginSubmitBtn"),
   authSubtitle: document.getElementById("authSubtitle"),
@@ -610,9 +614,17 @@ async function handleExportSelectedPDF() {
 // -----------------------------
 // Auth UI
 // -----------------------------
+function resetPasswordToggleState() {
+  if (els.loginPassword) els.loginPassword.type = "password";
+  if (els.passwordToggle) els.passwordToggle.setAttribute("aria-label", "Show password");
+  if (els.passwordToggleIconShow) els.passwordToggleIconShow.classList.remove("hidden");
+  if (els.passwordToggleIconHide) els.passwordToggleIconHide.classList.add("hidden");
+}
+
 function resetAuthForm() {
   if (els.loginEmail) els.loginEmail.value = "";
   if (els.loginPassword) els.loginPassword.value = "";
+  resetPasswordToggleState();
   if (els.loginMsg) {
     els.loginMsg.textContent = "";
     els.loginMsg.className = "auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200";
@@ -621,18 +633,16 @@ function resetAuthForm() {
 
 function showLogin() {
   if (els.appContent) els.appContent.classList.add("hidden");
+  if (els.authPageWrap) els.authPageWrap.classList.remove("hidden");
   if (els.loginSection) {
-    els.loginSection.classList.remove("hidden");
     els.loginSection.classList.add("auth-card-enter");
     resetAuthForm();
   }
 }
 
 function showApp() {
-  if (els.loginSection) {
-    els.loginSection.classList.remove("auth-card-enter");
-    els.loginSection.classList.add("hidden");
-  }
+  if (els.authPageWrap) els.authPageWrap.classList.add("hidden");
+  if (els.loginSection) els.loginSection.classList.remove("auth-card-enter");
   if (els.appContent) els.appContent.classList.remove("hidden");
 }
 
@@ -657,6 +667,7 @@ function setAuthMode(nextMode) {
     els.loginPassword.autocomplete = authMode === "signup" ? "new-password" : "current-password";
     els.loginPassword.value = "";
   }
+  resetPasswordToggleState();
   if (els.loginMsg) {
     els.loginMsg.textContent = "";
     els.loginMsg.className = "auth-field-enter text-sm mb-3 min-h-[1.25rem] transition-colors duration-200";
@@ -754,6 +765,16 @@ els.weekPrevBtn.addEventListener("click", () => shiftWeekBy(-7));
 els.weekNextBtn.addEventListener("click", () => shiftWeekBy(7));
 
 els.themeToggle.addEventListener("click", () => Theme.toggleTheme(els));
+
+if (els.passwordToggle && els.loginPassword) {
+  els.passwordToggle.addEventListener("click", () => {
+    const isPassword = els.loginPassword.type === "password";
+    els.loginPassword.type = isPassword ? "text" : "password";
+    if (els.passwordToggleIconShow) els.passwordToggleIconShow.classList.toggle("hidden", isPassword);
+    if (els.passwordToggleIconHide) els.passwordToggleIconHide.classList.toggle("hidden", !isPassword);
+    els.passwordToggle.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+  });
+}
 
 if (els.authModeToggleBtn) {
   els.authModeToggleBtn.addEventListener("click", () => {
