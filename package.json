@@ -1,0 +1,10 @@
+{
+  "name": "cloky",
+  "private": true,
+  "scripts": {
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}

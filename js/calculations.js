@@ -1,5 +1,5 @@
 /**
- * Business Logic - Hours Calculations and Week Calculations
+ * Hours and shift calculations.
  */
 
 import { parseTimeToMinutes } from './utils.js';

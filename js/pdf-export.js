@@ -1,8 +1,6 @@
 /**
- * PDF Export Functionality
+ * PDF export: generates a PDF of shifts and totals.
  */
-
-import * as Utils from './utils.js';
 
 export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTimeToMinutes, formatTime12Hour, fmtHours, fmtMoney, todayISO, filenameSuffix = "") {
   if (entries.length === 0) {

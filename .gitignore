@@ -3,3 +3,4 @@ js/supabase-config.js
 docs/
 .vscode/
 .DS_Store
+node_modules/

@@ -1,5 +1,5 @@
 /**
- * Utility Functions - Date, Time, and Formatting
+ * Date, time, and formatting utilities.
  */
 
 export function pad2(n) { 

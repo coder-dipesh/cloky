@@ -1,5 +1,5 @@
 /**
- * Configuration and Constants
+ * App constants and config keys.
  */
 
 export const STORAGE_KEY = "pay_calc_entries_v2";

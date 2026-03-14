@@ -1,5 +1,5 @@
 /**
- * Theme Management
+ * Dark/light theme (localStorage + system preference).
  */
 
 import { THEME_KEY } from './config.js';

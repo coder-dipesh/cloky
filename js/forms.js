@@ -1,21 +1,44 @@
 /**
- * Form Handling and Validation
+ * Form validation and shift field helpers.
  */
 
 import { calcHoursMeta } from './calculations.js';
-import { parseTimeToMinutes, todayISO, fmtHours } from './utils.js';
+import { parseTimeToMinutes, todayISO, fmtHours, pad2 } from './utils.js';
 import { MAX_SHIFT_HOURS_WARN } from './config.js';
+import * as Pickers from './pickers.js';
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Normalize "9:0", "9:00", "09:00" to "09:00" for storage. */
+function normalizeTime(str) {
+  const m = str.trim().match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!m) return null;
+  const h = Math.max(0, Math.min(23, parseInt(m[1], 10)));
+  const min = Math.max(0, Math.min(59, parseInt(m[2], 10)));
+  return `${pad2(h)}:${pad2(min)}`;
+}
 
 export function validateAndCompute(els, setMessage) {
-  const date = els.date.value.trim();
-  const clockIn = els.clockIn.value.trim();
-  const clockOut = els.clockOut.value.trim();
+  const dateRaw = els.date.value.trim();
+  const clockInRaw = els.clockIn.value.trim();
+  const clockOutRaw = els.clockOut.value.trim();
   const breakMin = Number(els.breakMin.value || 0);
 
-  if (!date || !clockIn || !clockOut) {
+  if (!dateRaw || !clockInRaw || !clockOutRaw) {
     setMessage(els, "Please fill Date, Clock in, and Clock out.", "err");
     return null;
   }
+  if (!DATE_REGEX.test(dateRaw)) {
+    setMessage(els, "Date must be YYYY-MM-DD (e.g. 2026-03-14).", "err");
+    return null;
+  }
+  const clockIn = normalizeTime(clockInRaw);
+  const clockOut = normalizeTime(clockOutRaw);
+  if (!clockIn || !clockOut) {
+    setMessage(els, "Clock in and Clock out must be HH:MM (e.g. 09:00 or 17:30).", "err");
+    return null;
+  }
+  const date = dateRaw;
   if (Number.isNaN(breakMin) || breakMin < 0) {
     setMessage(els, "Break minutes must be 0 or more.", "err");
     return null;
@@ -53,9 +76,9 @@ export function validateAndCompute(els, setMessage) {
 }
 
 export function clearFieldsAfterAddOrUpdate(els, updatePreview, keepDateISO = null) {
-  els.date.value = keepDateISO || todayISO();
-  els.clockIn.value = "";
-  els.clockOut.value = "";
+  Pickers.setFlatpickrValue(els.date, keepDateISO || todayISO());
+  Pickers.setFlatpickrValue(els.clockIn, "");
+  Pickers.setFlatpickrValue(els.clockOut, "");
   els.breakMin.value = "0";
   updatePreview();
 }

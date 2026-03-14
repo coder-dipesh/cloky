@@ -1,11 +1,12 @@
 /**
- * UI Utilities - Messages and UI Helpers
+ * Toast messages and today-chip UI.
  */
 
 let msgTimer = null;
 
 export function setMessage(els, text, type = "ok", autoHide = true) {
   if (msgTimer) clearTimeout(msgTimer);
+  if (!els.msg) return;
 
   els.msg.textContent = text || "";
   els.msg.className = "mt-3 text-sm";
@@ -28,6 +29,7 @@ export function setMessage(els, text, type = "ok", autoHide = true) {
 }
 
 export function updateTodayChip(els, todayISO) {
+  if (!els.date || !els.todayChip) return;
   const isToday = els.date.value === todayISO();
   els.todayChip.classList.toggle("hidden", !isToday);
 }

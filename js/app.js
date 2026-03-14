@@ -1,11 +1,8 @@
 /**
- * Main Application - Pay Calculator
- * 
- * Initializes the application and ties together all modules
+ * Cloky – Pay Calculator
+ * Main app: shifts, hourly rate, weekly summary, auth.
  */
 
-// Import all modules
-import * as Config from './config.js';
 import * as Storage from './storage.js';
 import * as Utils from './utils.js';
 import * as Calculations from './calculations.js';
@@ -14,12 +11,10 @@ import * as Forms from './forms.js';
 import * as Theme from './theme.js';
 import { exportToPDF } from './pdf-export.js';
 import * as Auth from './auth.js';
-
-// Import render functions (will be created inline for now due to circular dependencies)
-// For now, we'll define render functions here that use the imported modules
+import * as Pickers from './pickers.js';
 
 // -----------------------------
-// Elements
+// DOM elements
 // -----------------------------
 const els = {
   date: document.getElementById("date"),
@@ -30,20 +25,15 @@ const els = {
   previewOvernight: document.getElementById("previewOvernight"),
   addBtn: document.getElementById("addBtn"),
   cancelEditBtn: document.getElementById("cancelEditBtn"),
-  clearBtn: document.getElementById("clearBtn"),
   rows: document.getElementById("rows"),
   grandTotal: document.getElementById("grandTotal"),
   totalEarned: document.getElementById("totalEarned"),
   msg: document.getElementById("msg"),
   hourlyRate: document.getElementById("hourlyRate"),
 
-  weekStart: document.getElementById("weekStart"),
   weekHours: document.getElementById("weekHours"),
   weekEarned: document.getElementById("weekEarned"),
   weekShifts: document.getElementById("weekShifts"),
-  weekThisBtn: document.getElementById("weekThisBtn"),
-  weekPrevBtn: document.getElementById("weekPrevBtn"),
-  weekNextBtn: document.getElementById("weekNextBtn"),
 
   statLongest: document.getElementById("statLongest"),
   statAverage: document.getElementById("statAverage"),
@@ -75,6 +65,12 @@ const els = {
   authSubtitle: document.getElementById("authSubtitle"),
   authModeToggleBtn: document.getElementById("authModeToggleBtn"),
   signOutBtn: document.getElementById("signOutBtn"),
+
+  installBanner: document.getElementById("installBanner"),
+  installBannerText: document.getElementById("installBannerText"),
+  installBannerSub: document.getElementById("installBannerSub"),
+  installBannerBtn: document.getElementById("installBannerBtn"),
+  installBannerDismiss: document.getElementById("installBannerDismiss"),
 };
 
 // -----------------------------
@@ -83,11 +79,11 @@ const els = {
 let editingId = null;
 const PAGE_SIZE = 10;
 let currentPage = 1;
-/** Set of row IDs selected across all pages (persists when changing pages). */
 let selectedRowIds = new Set();
+let deferredInstallPrompt = null;
 
 // -----------------------------
-// Helper functions that use imported modules
+// Helpers
 // -----------------------------
 function setMessage(text, type = "ok", autoHide = true) {
   UI.setMessage(els, text, type, autoHide);
@@ -117,21 +113,13 @@ function updatePreview() {
   else els.previewOvernight.classList.add("hidden");
 }
 
-function setWeekStartToDate(dateISO) {
-  const monday = Utils.mondayOf(Utils.parseISODateLocal(dateISO));
-  els.weekStart.value = Utils.isoFromDate(monday);
+function getThisWeekMondayISO() {
+  return Utils.isoFromDate(Utils.mondayOf(new Date()));
 }
 
 function renderWeeklySummary(entries, rate) {
-  const weekISO = els.weekStart.value;
+  const weekISO = getThisWeekMondayISO();
   const numRate = Number(rate) || 0;
-
-  if (!weekISO) {
-    els.weekHours.textContent = "0.00";
-    els.weekEarned.textContent = "$0.00";
-    els.weekShifts.textContent = "0";
-    return { weekHours: 0, weekShifts: 0, weekEarned: 0 };
-  }
 
   let weekHours = 0;
   let weekShifts = 0;
@@ -168,23 +156,17 @@ function renderInsights(entries, rate) {
   const best = Calculations.computeMostWorkedDay(entries, Utils.parseISODateLocal);
   els.statBestDay.textContent = best.day;
 
-  // Week-to-week comparison
+  // Week-to-week comparison (this week vs previous week)
   const numRate = Number(rate) || 0;
-  const weekISO = els.weekStart.value;
+  const weekISO = getThisWeekMondayISO();
 
-  if (!weekISO) {
-    els.statWeekDeltaHours.textContent = "0.00";
-    els.statWeekDeltaEarned.textContent = "$0.00";
-    return;
-  }
-
-  // Selected week totals
+  // This week totals
   let thisWeekHours = 0;
   for (const e of entries) {
     if (Utils.shiftFallsInWeek(e.date, weekISO)) thisWeekHours += e.totalHours;
   }
 
-  // Previous week (weekStart - 7 days)
+  // Previous week (this week - 7 days)
   const prevStart = Utils.parseISODateLocal(weekISO);
   prevStart.setDate(prevStart.getDate() - 7);
   const prevISO = Utils.isoFromDate(prevStart);
@@ -349,16 +331,13 @@ async function render() {
       if (!entry) return;
 
       editingId = id;
-      els.date.value = entry.date;
-      els.clockIn.value = entry.clockIn;
-      els.clockOut.value = entry.clockOut;
+      Pickers.setFlatpickrValue(els.date, entry.date);
+      Pickers.setFlatpickrValue(els.clockIn, entry.clockIn);
+      Pickers.setFlatpickrValue(els.clockOut, entry.clockOut);
       els.breakMin.value = String(entry.breakMin);
 
       els.addBtn.textContent = "Update Shift";
       els.cancelEditBtn.classList.remove("hidden");
-
-      setWeekStartToDate(entry.date);
-
       updatePreview();
       setMessage("Editing shift. Make changes and click Update Shift.", "warn");
     });
@@ -473,9 +452,9 @@ function updateDeleteSelectedVisibility() {
 }
 
 function clearFieldsAfterAddOrUpdate(keepDateISO = null) {
-  els.date.value = keepDateISO || Utils.todayISO();
-  els.clockIn.value = "";
-  els.clockOut.value = "";
+  Pickers.setFlatpickrValue(els.date, keepDateISO || Utils.todayISO());
+  Pickers.setFlatpickrValue(els.clockIn, "");
+  Pickers.setFlatpickrValue(els.clockOut, "");
   els.breakMin.value = "0";
   updatePreview();
 }
@@ -486,7 +465,8 @@ function resetEditMode() {
 }
 
 function validateAndCompute() {
-  return Forms.validateAndCompute(els, setMessage);
+  const formSetMessage = (_els, text, type) => UI.setMessage(els, text, type, true);
+  return Forms.validateAndCompute(els, formSetMessage);
 }
 
 async function upsertShift() {
@@ -519,8 +499,7 @@ async function upsertShift() {
     };
 
     await Storage.saveEntries(entries, setMessage);
-    setWeekStartToDate(computed.date);
-    await render();
+  await render();
     setMessage("Shift updated.");
     resetEditMode();
     return;
@@ -540,30 +519,12 @@ async function upsertShift() {
 
   entries.push(entry);
   await Storage.saveEntries(entries, setMessage);
-  setWeekStartToDate(entry.date);
   await render();
   setMessage("Shift saved.");
   clearFieldsAfterAddOrUpdate(Utils.todayISO());
   } finally {
     btn.disabled = wasDisabled;
   }
-}
-
-async function setWeekToThisWeek() {
-  const monday = Utils.mondayOf(new Date());
-  els.weekStart.value = Utils.isoFromDate(monday);
-  await render();
-}
-
-async function shiftWeekBy(deltaDays) {
-  if (!els.weekStart.value) {
-    await setWeekToThisWeek();
-    return;
-  }
-  const d = Utils.parseISODateLocal(els.weekStart.value);
-  d.setDate(d.getDate() + deltaDays);
-  els.weekStart.value = Utils.isoFromDate(d);
-  await render();
 }
 
 async function handleExportPDF() {
@@ -678,9 +639,9 @@ async function initApp() {
   if (appInitialized) return;
   appInitialized = true;
 
-  els.date.value = Utils.todayISO();
+  Pickers.initPickers(els);
+  Pickers.setFlatpickrValue(els.date, Utils.todayISO());
   updateTodayChip();
-  await setWeekToThisWeek();
   const rate = await Storage.loadHourlyRate();
   els.hourlyRate.value = String(rate ?? "");
   unsubRealtime();
@@ -690,48 +651,110 @@ async function initApp() {
   }
   await render();
   updatePreview();
+  maybeShowInstallBanner();
 }
 
 // -----------------------------
-// Events
+// PWA install banner (mobile)
 // -----------------------------
-["input", "change"].forEach(evt => {
-  els.clockIn.addEventListener(evt, updatePreview);
-  els.clockOut.addEventListener(evt, updatePreview);
-  els.breakMin.addEventListener(evt, updatePreview);
-  els.date.addEventListener(evt, () => {
-    updatePreview();
-    updateTodayChip();
+const PWA_DISMISS_KEY = "pwa-install-dismissed";
+
+function isMobileView() {
+  return typeof window !== "undefined" && (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent));
+}
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function maybeShowInstallBanner() {
+  if (!els.installBanner || !els.appContent) return;
+  if (els.appContent.classList.contains("hidden")) return;
+  if (isStandalone()) return;
+  if (localStorage.getItem(PWA_DISMISS_KEY)) return;
+  if (!isMobileView()) return;
+
+  els.installBanner.classList.remove("hidden");
+  if (els.installBannerSub) els.installBannerSub.classList.add("hidden");
+  if (deferredInstallPrompt) {
+    els.installBannerText.textContent = "Add Cloky to your home screen for quick access.";
+    if (els.installBannerBtn) els.installBannerBtn.classList.remove("hidden");
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      els.installBannerText.innerHTML = "Install: open this page in <strong>Safari</strong>, tap Share, then scroll the <strong>row of icons</strong> to find \"Add to Home Screen\".";
+      if (els.installBannerSub) els.installBannerSub.classList.remove("hidden");
+    } else {
+      if (els.installBannerSub) els.installBannerSub.classList.add("hidden");
+      els.installBannerText.textContent = "Install Cloky for a better experience on your phone.";
+      if (els.installBannerSub) els.installBannerSub.classList.add("hidden");
+    }
+    if (els.installBannerBtn) els.installBannerBtn.classList.add("hidden");
+  }
+}
+
+function hideInstallBanner() {
+  if (els.installBanner) els.installBanner.classList.add("hidden");
+  localStorage.setItem(PWA_DISMISS_KEY, "1");
+}
+
+// -----------------------------
+// Events (bind after DOM is ready so elements exist)
+// -----------------------------
+function bindEvents() {
+  if (typeof window !== "undefined") {
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (els.installBanner && !els.installBanner.classList.contains("hidden")) {
+        if (els.installBannerText) els.installBannerText.textContent = "Add Cloky to your home screen for quick access.";
+        if (els.installBannerBtn) els.installBannerBtn.classList.remove("hidden");
+      }
+    });
+
+    if (els.installBannerDismiss) els.installBannerDismiss.addEventListener("click", hideInstallBanner);
+    if (els.installBannerBtn) els.installBannerBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      hideInstallBanner();
+    });
+  }
+
+  if (els.clockIn) els.clockIn.addEventListener("input", updatePreview);
+  if (els.clockIn) els.clockIn.addEventListener("change", updatePreview);
+  if (els.clockOut) els.clockOut.addEventListener("input", updatePreview);
+  if (els.clockOut) els.clockOut.addEventListener("change", updatePreview);
+  if (els.breakMin) els.breakMin.addEventListener("input", updatePreview);
+  if (els.breakMin) els.breakMin.addEventListener("change", updatePreview);
+  if (els.date) {
+    els.date.addEventListener("input", () => { updatePreview(); updateTodayChip(); });
+    els.date.addEventListener("change", () => { updatePreview(); updateTodayChip(); });
+  }
+
+  document.querySelectorAll(".break-chip").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const min = btn.getAttribute("data-min");
+      if (min != null && els.breakMin) {
+        els.breakMin.value = min;
+        updatePreview();
+      }
+    });
   });
-});
 
-els.addBtn.addEventListener("click", () => upsertShift());
+  if (els.addBtn) els.addBtn.addEventListener("click", () => upsertShift());
 
-els.cancelEditBtn.addEventListener("click", () => {
-  resetEditMode();
-  setMessage("Edit cancelled.");
-});
+  if (els.cancelEditBtn) els.cancelEditBtn.addEventListener("click", () => {
+    resetEditMode();
+    setMessage("Edit cancelled.");
+  });
 
-els.clearBtn.addEventListener("click", async () => {
-  const confirmed = window.confirm(
-    "Are you sure you want to clear all saved shift data? This action cannot be undone."
-  );
-  if (!confirmed) return;
-  await Storage.clearAllEntries();
-  resetEditMode();
-  await render();
-  setMessage("All saved shift data cleared.");
-  updatePreview();
-});
+  if (els.exportPdfBtn) els.exportPdfBtn.addEventListener("click", () => handleExportPDF());
 
-els.exportPdfBtn.addEventListener("click", () => handleExportPDF());
+  if (els.exportSelectedBtn) els.exportSelectedBtn.addEventListener("click", () => handleExportSelectedPDF());
 
-if (els.exportSelectedBtn) {
-  els.exportSelectedBtn.addEventListener("click", () => handleExportSelectedPDF());
-}
-
-if (els.deleteSelectedBtn) {
-  els.deleteSelectedBtn.addEventListener("click", async () => {
+  if (els.deleteSelectedBtn) els.deleteSelectedBtn.addEventListener("click", async () => {
     if (selectedRowIds.size === 0) return;
     const idsToDelete = Array.from(selectedRowIds);
     const confirmed = window.confirm(
@@ -748,46 +771,35 @@ if (els.deleteSelectedBtn) {
     await render();
     setMessage(idsToDelete.length === 1 ? "Shift deleted." : `${idsToDelete.length} shifts deleted.`);
   });
-}
 
-els.hourlyRate.addEventListener("input", async () => {
-  const rate = Number(els.hourlyRate.value || 0);
-  await Storage.saveHourlyRate(rate);
-  await render();
-});
-
-els.weekStart.addEventListener("change", async () => {
-  await render();
-});
-
-els.weekThisBtn.addEventListener("click", () => setWeekToThisWeek());
-els.weekPrevBtn.addEventListener("click", () => shiftWeekBy(-7));
-els.weekNextBtn.addEventListener("click", () => shiftWeekBy(7));
-
-els.themeToggle.addEventListener("click", () => Theme.toggleTheme(els));
-
-if (els.passwordToggle && els.loginPassword) {
-  els.passwordToggle.addEventListener("click", () => {
-    const isPassword = els.loginPassword.type === "password";
-    els.loginPassword.type = isPassword ? "text" : "password";
-    if (els.passwordToggleIconShow) els.passwordToggleIconShow.classList.toggle("hidden", isPassword);
-    if (els.passwordToggleIconHide) els.passwordToggleIconHide.classList.toggle("hidden", !isPassword);
-    els.passwordToggle.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+  if (els.hourlyRate) els.hourlyRate.addEventListener("input", async () => {
+    const rate = Number(els.hourlyRate.value || 0);
+    await Storage.saveHourlyRate(rate);
+    await render();
   });
-}
 
-if (els.authModeToggleBtn) {
-  els.authModeToggleBtn.addEventListener("click", () => {
+  if (els.themeToggle) els.themeToggle.addEventListener("click", () => Theme.toggleTheme(els));
+
+  if (els.passwordToggle && els.loginPassword) {
+    els.passwordToggle.addEventListener("click", () => {
+      const isPassword = els.loginPassword.type === "password";
+      els.loginPassword.type = isPassword ? "text" : "password";
+      if (els.passwordToggleIconShow) els.passwordToggleIconShow.classList.toggle("hidden", isPassword);
+      if (els.passwordToggleIconHide) els.passwordToggleIconHide.classList.toggle("hidden", !isPassword);
+      els.passwordToggle.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+    });
+  }
+
+  if (els.authModeToggleBtn) els.authModeToggleBtn.addEventListener("click", () => {
     setAuthMode(authMode === "signup" ? "signin" : "signup");
   });
-}
 
-if (els.loginSubmitBtn && els.loginEmail && els.loginPassword && els.loginMsg) {
-  els.loginSubmitBtn.addEventListener("click", async () => {
-    const email = els.loginEmail.value.trim();
-    const password = els.loginPassword.value;
+  if (els.loginSubmitBtn && els.loginEmail && els.loginPassword && els.loginMsg) {
+    els.loginSubmitBtn.addEventListener("click", async () => {
+      const email = els.loginEmail.value.trim();
+      const password = els.loginPassword.value;
 
-    if (!email) {
+      if (!email) {
       els.loginMsg.textContent = "Enter your email.";
       els.loginMsg.className = "text-sm mb-3 min-h-[1.25rem] text-red-600 dark:text-red-400";
       return;
@@ -831,15 +843,20 @@ if (els.loginSubmitBtn && els.loginEmail && els.loginPassword && els.loginMsg) {
     els.loginMsg.textContent = "";
     els.loginSubmitBtn.disabled = false;
   });
-}
+  }
 
-if (els.signOutBtn) {
-  els.signOutBtn.addEventListener("click", async () => {
+  if (els.signOutBtn) els.signOutBtn.addEventListener("click", async () => {
     appInitialized = false;
     unsubRealtime();
     await Auth.signOut();
     showLogin();
   });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bindEvents);
+} else {
+  bindEvents();
 }
 
 // Load theme once

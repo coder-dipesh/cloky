@@ -11,6 +11,7 @@
   <meta name="bingbot" content="index, follow">
   <meta name="yandexbot" content="index, follow">
   <meta name="sitemap" content="https://cloky-cloky.vercel.app">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Cloky">
@@ -22,15 +23,18 @@
   <link rel="apple-touch-icon" href="./icons/favicon.svg">
   <link rel="manifest" href="./manifest.webmanifest">
 
-
   <title>Cloky</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     // Enable dark: variants
     tailwind.config = { darkMode: 'class' }
   </script>
   <style>
+    /* Keep layout within viewport on mobile */
+    *, *::before, *::after { box-sizing: border-box; }
     /* Auth page: gradient background */
     .auth-page-wrap {
       background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #fffbeb 100%);
@@ -123,19 +127,47 @@
       /* Table row actions: tap-friendly on mobile */
       .editBtn, .deleteBtn { min-height: 44px; min-width: 44px; padding: 0.5rem 0.75rem !important; display: inline-flex; align-items: center; justify-content: center; }
       table th, table td { padding: 0.75rem 0.5rem; }
+      /* Date/time inputs: extra right space so native picker value doesn't clip */
+      #date, #clockIn, #clockOut {
+        width: 100%;
+        min-width: 0;
+        padding-left: 0.5rem;
+        padding-right: 1.25rem;
+        box-sizing: border-box;
+      }
+      /* Slightly less horizontal padding on form card so inputs have more width */
+      #shiftFormCard { padding-left: 0.75rem; padding-right: 0.75rem; }
     }
-    /* Safe area for notched phones */
+    /* Prevent horizontal overflow on any screen */
+    html {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+      -webkit-text-size-adjust: 100%;
+    }
     body {
+      margin: 0;
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
       padding-bottom: env(safe-area-inset-bottom);
       overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+      min-width: 0;
+      position: relative;
     }
     .min-h-screen { padding-top: max(0.25rem, env(safe-area-inset-top)); }
     .overflow-x-auto.-webkit-overflow-scrolling-touch { -webkit-overflow-scrolling: touch; }
     /* Prevent horizontal overflow on mobile: let content shrink and text wrap */
     #appContent, #appContent > * { min-width: 0; }
     #appContent p, #appContent .text-xs, #appContent .text-sm { overflow-wrap: break-word; word-break: break-word; }
+    #appContent button { max-width: 100%; box-sizing: border-box; }
+    #appContent input { box-sizing: border-box; max-width: 100%; }
+    /* Keep form card and its contents within bounds so nothing is clipped */
+    #shiftFormCard { width: 100%; max-width: 100%; box-sizing: border-box; }
+    #shiftFormCard input, #shiftFormCard button { max-width: 100%; }
+    /* Time picker dialog: never wider than viewport on mobile */
+    #customTimePickerDialog { max-width: min(24rem, calc(100vw - 32px)); box-sizing: border-box; }
     /* PWA standalone: full viewport, safe areas for notches/home indicator */
     @media (display-mode: standalone), (display-mode: fullscreen) {
       body { background: #0f172a; }
@@ -144,12 +176,28 @@
     }
     /* Prevent pull-to-refresh and overscroll in standalone when not intended */
     html.standalone { overscroll-behavior-y: contain; }
+    /* Custom time picker wheels */
+    .time-picker-wheels { display: flex; justify-content: center; gap: 0.5rem; padding: 0.5rem 0; max-height: 200px; position: relative; }
+    .time-picker-wheel { flex: 1; max-width: 4rem; overflow-y: auto; overflow-x: hidden; scroll-snap-type: y mandatory; scrollbar-width: none; -ms-overflow-style: none; position: relative; z-index: 2; }
+    .time-picker-wheel::-webkit-scrollbar { display: none; }
+    .time-picker-wheel-inner { padding: 80px 0; }
+    .time-picker-wheel-item { scroll-snap-align: center; scroll-snap-stop: always; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: rgb(148 163 184); transition: color 0.15s; }
+    .time-picker-wheel-item.selected { color: rgb(15 23 42); font-weight: 600; z-index: 1; }
+    .dark .time-picker-wheel-item.selected { color: rgb(248 250 252); }
+    /* Semi-transparent highlight so the selected value stays visible */
+    .time-picker-highlight { position: absolute; left: 0.5rem; right: 0.5rem; top: 50%; transform: translateY(-50%); height: 40px; background: rgba(226 232 240 / 0.5); border-radius: 8px; pointer-events: none; border: 1px solid rgba(148 163 184 / 0.4); }
+    .dark .time-picker-highlight { background: rgba(51 65 85 / 0.5); border-color: rgba(71 85 105 / 0.5); }
+    .time-picker-fade { position: absolute; left: 0; right: 0; height: 80px; pointer-events: none; }
+    .time-picker-fade-top { top: 0; background: linear-gradient(to bottom, white, transparent); }
+    .dark .time-picker-fade-top { background: linear-gradient(to bottom, rgb(15 23 42), transparent); }
+    .time-picker-fade-bottom { bottom: 0; background: linear-gradient(to top, white, transparent); }
+    .dark .time-picker-fade-bottom { background: linear-gradient(to top, rgb(15 23 42), transparent); }
   </style>
 </head>
 
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
-  <div class="min-h-screen flex items-start justify-center flex-wrap p-3 sm:p-4 md:p-6 overflow-x-hidden">
-    <div class="w-full max-w-5xl min-w-0">
+  <div class="min-h-screen flex items-start justify-start flex-wrap p-3 sm:p-4 md:p-6 overflow-x-hidden w-full max-w-full max-w-[100vw] box-border">
+    <div class="w-full max-w-5xl min-w-0 box-border overflow-x-hidden">
 
       <!-- Auth page (login/signup) – full-screen gradient when shown -->
       <div id="authPageWrap" class="hidden fixed inset-0 z-10 flex items-center justify-center p-4 auth-page-wrap">
@@ -219,126 +267,97 @@
       <!-- Main app – shown when authenticated -->
       <div id="appContent" class="hidden w-full min-w-0">
 
-      <!-- Header + Hourly rate (right) -->
-      <header class="mb-4 md:mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
-        <div class="min-w-0">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 shrink-0" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
-              <!-- Background -->
-              <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F172A"/>
-            
-              <!-- Centered C -->
-              <path
-                d="M640 352
-                   C580 292 500 260 424 260
-                   C292 260 188 364 188 512
-                   C188 660 292 764 424 764
-                   C500 764 580 732 640 672"
-                fill="none"
-                stroke="#FFFFFF"
-                stroke-width="92"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            
-              <!-- Center dot -->
-              <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
-            </svg>
-            
-            <h1 class="text-xl sm:text-2xl font-semibold truncate">Cloky</h1>
-          </div>
-
-          <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
-            <button id="themeToggle" type="button"
-              class="touch-target inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-slate-300 px-4 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
-                     dark:border-slate-700 dark:hover:bg-slate-900">
-              <span id="themeIconSun" class="hidden text-amber-500">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
-                  <path d="M12 4.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-.5A.75.75 0 0 1 12 6.25v-1.5ZM12 16.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75v-1.5ZM7.28 6.22a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06L7.28 7.28a.75.75 0 0 1 0-1.06Zm6.32 6.32a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM4.75 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H5.5A.75.75 0 0 1 4.75 12Zm10.5 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1-.75-.75ZM7.28 15.88a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 1 1 1.06 1.06L8.34 15.88a.75.75 0 0 1-1.06 0Zm6.32-6.32a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06L14.66 9.56a.75.75 0 0 1-1.06 0ZM9.75 12a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Z" />
-                </svg>
-              </span>
-              <span id="themeIconMoon" class="hidden text-slate-200">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
-                  <path d="M21.752 15.002A9.718 9.718 0 0 1 12 21.75 9.75 9.75 0 0 1 8.25 3.018a.75.75 0 0 1 .964.964A8.25 8.25 0 0 0 20.768 14.04a.75.75 0 0 1 .984.962Z" />
-                </svg>
-              </span>
-              <span id="themeToggleLabel"></span>
-            </button>
-            <button id="signOutBtn" type="button"
-              class="touch-target inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
-                     dark:border-slate-700 dark:hover:bg-slate-900">
-              Sign out
-            </button>
-          </div>
-
-          </div>
-          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 break-words min-w-0">
-            Track shifts, breaks, and total hours. Shift data auto-clears after 30 days.
-          </p>
+      <!-- PWA install hint (mobile only, hidden when already installed or dismissed) -->
+      <div id="installBanner" class="hidden mb-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3 flex items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <p id="installBannerText" class="text-sm text-slate-700 dark:text-slate-300">Install Cloky for a better experience on your phone.</p>
+          <p id="installBannerSub" class="hidden mt-1 text-xs text-slate-500 dark:text-slate-400">Only Safari shows “Add to Home Screen”. Brave/Chrome may not.</p>
         </div>
-
-        <div class="w-full md:w-64 min-w-0">
-          <label class="block text-sm font-medium mb-1">Hourly Rate ($)</label>
-          <input
-            id="hourlyRate"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="e.g. 25"
-            class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
-                   focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-white/10"
-          />
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Saved automatically</p>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="installBannerBtn" type="button" class="hidden rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-2 text-sm font-medium whitespace-nowrap">Install</button>
+          <button id="installBannerDismiss" type="button" class="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 shrink-0" aria-label="Dismiss">✕</button>
         </div>
-      </header>
+      </div>
 
-      <!-- Form -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
-          <div class="min-w-0">
-            <label class="flex items-center gap-2 text-sm font-medium mb-1">
+      <!-- Top navigation bar -->
+      <nav class="flex items-center justify-between gap-3 py-3 -mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 mb-4 md:mb-5 border-b border-slate-200 dark:border-slate-700/80" aria-label="Main navigation">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 sm:w-10 sm:h-10 shrink-0" viewBox="0 0 1024 1024" role="img" aria-label="Cloky logo">
+            <rect x="96" y="96" width="832" height="832" rx="180" fill="#0F172A"/>
+            <path d="M640 352 C580 292 500 260 424 260 C292 260 188 364 188 512 C188 660 292 764 424 764 C500 764 580 732 640 672" fill="none" stroke="#FFFFFF" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="512" cy="512" r="34" fill="#F59E0B"/>
+          </svg>
+          <h1 class="text-lg sm:text-xl font-semibold truncate text-slate-900 dark:text-white">Cloky</h1>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="themeToggle" type="button"
+            class="touch-target inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 sm:px-3.5 sm:py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label="Toggle theme">
+            <span id="themeIconSun" class="hidden text-amber-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
+                <path d="M12 4.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-.5A.75.75 0 0 1 12 6.25v-1.5ZM12 16.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75v-1.5ZM7.28 6.22a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06L7.28 7.28a.75.75 0 0 1 0-1.06Zm6.32 6.32a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM4.75 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H5.5A.75.75 0 0 1 4.75 12Zm10.5 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1-.75-.75ZM7.28 15.88a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 1 1 1.06 1.06L8.34 15.88a.75.75 0 0 1-1.06 0Zm6.32-6.32a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06L14.66 9.56a.75.75 0 0 1-1.06 0ZM9.75 12a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Z" />
+              </svg>
+            </span>
+            <span id="themeIconMoon" class="hidden text-slate-200">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
+                <path d="M21.752 15.002A9.718 9.718 0 0 1 12 21.75 9.75 9.75 0 0 1 8.25 3.018a.75.75 0 0 1 .964.964A8.25 8.25 0 0 0 20.768 14.04a.75.75 0 0 1 .984.962Z" />
+              </svg>
+            </span>
+            <span id="themeToggleLabel" class="hidden sm:inline"></span>
+          </button>
+          <button id="signOutBtn" type="button"
+            class="touch-target inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 sm:px-3.5 sm:py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            Sign out
+          </button>
+        </div>
+      </nav>
+
+      <!-- Add Shift form (on top) -->
+      <div id="shiftFormCard" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0 mb-4 md:mb-6 w-full overflow-hidden">
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Add Shift</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 min-w-0 w-full">
+          <div class="min-w-0 flex flex-col">
+            <label class="flex items-center gap-2 text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
               Date
-              <span id="todayChip" class="hidden touch-target text-xs sm:text-xs px-3 py-2 sm:px-2.5 sm:py-1 rounded-full border border-slate-300 bg-slate-50 text-slate-700 inline-flex items-center
-                                          dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              <span id="todayChip" class="hidden touch-target text-xs px-3 py-1 sm:px-2.5 sm:py-1 rounded-full border border-slate-300 bg-slate-50 text-slate-700 inline-flex items-center dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                 Today
               </span>
             </label>
-            <input id="date" type="date"
-              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
-                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+            <input id="date" type="text" placeholder="YYYY-MM-DD" autocomplete="off"
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-base
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
 
-          <div class="min-w-0">
-            <label class="block text-sm font-medium mb-1">Break (minutes)</label>
+          <div class="min-w-0 flex flex-col">
+            <label class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Break (minutes)</label>
             <input id="breakMin" type="number" min="0" value="0" placeholder="e.g. 30"
-              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
-                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-base
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button type="button" class="break-chip rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-min="10">10 min</button>
+              <button type="button" class="break-chip rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-min="15">15 min</button>
+              <button type="button" class="break-chip rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-min="30">30 min</button>
+            </div>
           </div>
 
-          <div class="min-w-0">
-            <label class="block text-sm font-medium mb-1">Clock in</label>
-            <input id="clockIn" type="time"
-              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
-                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+          <div class="min-w-0 flex flex-col">
+            <label class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Clock in</label>
+            <input id="clockIn" type="text" placeholder="HH:MM" autocomplete="off"
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-base
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
           </div>
 
-          <div class="min-w-0">
-            <label class="block text-sm font-medium mb-1">Clock out</label>
-            <input id="clockOut" type="time"
-              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2
-                     focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                     dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
+          <div class="min-w-0 flex flex-col">
+            <label class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Clock out</label>
+            <input id="clockOut" type="text" placeholder="HH:MM" autocomplete="off"
+              class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-base
+                     focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 break-words">Overnight shifts are supported.</p>
           </div>
         </div>
 
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 lg:items-center lg:justify-between min-w-0">
-          <div class="text-sm flex flex-wrap items-center gap-3 min-w-0">
+        <div class="mt-4 flex flex-col sm:flex-row gap-3 lg:items-center lg:justify-between min-w-0 w-full">
+          <div class="text-sm flex flex-wrap items-center gap-3 min-w-0 flex-1">
             <div class="min-w-0 break-words">
               <span class="text-slate-600 dark:text-slate-400">Total hours after break:</span>
               <span id="previewHours" class="font-semibold ml-2">0.00</span>
@@ -360,51 +379,36 @@
                      dark:border-slate-700 dark:hover:bg-slate-950">
               Cancel
             </button>
-            <button id="clearBtn" type="button"
-              class="touch-target w-full sm:w-auto rounded-xl border border-slate-300 px-4 py-3 sm:py-2 text-sm font-medium hover:bg-slate-100
-                     dark:border-slate-700 dark:hover:bg-slate-950">
-              Clear All
-            </button>
           </div>
         </div>
 
         <p id="msg" class="mt-3 text-sm"></p>
       </div>
 
-      <!-- Weekly Summary -->
-      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 min-w-0">
-          <div class="min-w-0">
-            <h2 class="text-lg font-semibold">Weekly Summary</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 break-words">Weeks run Monday to Sunday.</p>
-          </div>
+      <!-- Hourly Rate (below Add Shift) -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0 mb-4 md:mb-6">
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Hourly Rate</h2>
+        <div class="max-w-xs">
+          <label class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Rate ($)</label>
+          <input
+            id="hourlyRate"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 25"
+            class="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-base
+                   focus:outline-none focus:ring-2 focus:ring-slate-900/10
+                   dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-white/10"
+          />
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Saved automatically</p>
+        </div>
+      </div>
 
-          <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-            <div class="flex flex-col sm:flex-row gap-2 sm:items-center min-w-0">
-              <label class="text-sm font-medium text-slate-700 dark:text-slate-200 shrink-0">Week starting</label>
-              <input id="weekStart" type="date"
-                class="w-full sm:w-auto min-h-[44px] rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:py-2 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-slate-900/10
-                       dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-white/10" />
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <button id="weekThisBtn" type="button"
-                class="touch-target flex-1 sm:flex-none min-w-[100px] rounded-xl border border-slate-300 px-3 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                This week
-              </button>
-              <button id="weekPrevBtn" type="button"
-                class="touch-target flex-1 sm:flex-none min-w-[100px] rounded-xl border border-slate-300 px-3 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                Previous
-              </button>
-              <button id="weekNextBtn" type="button"
-                class="touch-target flex-1 sm:flex-none min-w-[100px] rounded-xl border border-slate-300 px-3 py-2.5 sm:py-2 text-sm font-medium hover:bg-slate-100
-                       dark:border-slate-700 dark:hover:bg-slate-950">
-                Next
-              </button>
-            </div>
-          </div>
+      <!-- Weekly Summary (current week only) -->
+      <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 min-w-0">
+        <div class="min-w-0">
+          <h2 class="text-lg font-semibold">Weekly Summary</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 break-words">Weeks run Monday to Sunday. Shows this week.</p>
         </div>
 
         <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0">
@@ -566,11 +570,36 @@
       </div>
 
       <footer class="mt-6 text-xs text-slate-500 dark:text-slate-400 break-words min-w-0">
-        Tip: Change the Week starting date to see any week’s totals.
+        Shifts and totals for the current week are shown above.
       </footer>
 
       </div>
       <!-- /appContent -->
+
+      <!-- Custom time picker modal (12h with AM/PM), positioned under the trigger field -->
+      <div id="customTimePickerOverlay" class="hidden fixed inset-0 z-50 bg-black/40" aria-hidden="true">
+        <div id="customTimePickerDialog" class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden" role="dialog" aria-label="Select time" tabindex="-1">
+          <div class="px-4 pt-4 pb-2">
+            <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Select time</p>
+          </div>
+          <div class="time-picker-wheels relative">
+            <div class="time-picker-fade time-picker-fade-top"></div>
+            <div class="time-picker-fade time-picker-fade-bottom"></div>
+            <div class="time-picker-highlight"></div>
+            <div id="timePickerHour" class="time-picker-wheel" role="listbox" aria-label="Hour"></div>
+            <div id="timePickerMinute" class="time-picker-wheel" role="listbox" aria-label="Minute"></div>
+            <div id="timePickerAmPm" class="time-picker-wheel" role="listbox" aria-label="AM/PM"></div>
+          </div>
+          <div class="flex gap-3 p-4 border-t border-slate-200 dark:border-slate-700">
+            <button type="button" id="customTimePickerCancel" class="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800">
+              Cancel
+            </button>
+            <button type="button" id="customTimePickerSet" class="flex-1 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium hover:bg-slate-800 dark:hover:bg-slate-100">
+              Set
+            </button>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>
