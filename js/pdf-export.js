@@ -2,6 +2,8 @@
  * PDF export: generates a PDF of shifts and totals.
  */
 
+import { payableHoursFromGross } from './calculations.js';
+
 export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTimeToMinutes, formatTime12Hour, fmtHours, fmtMoney, todayISO, filenameSuffix = "") {
   if (entries.length === 0) {
     setMessage("No shifts to export. Add some shifts first.", "err");
@@ -12,59 +14,54 @@ export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTim
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Calculate totals
+    // Gross hours from all shifts; pay uses hours after tax allowance is excluded
     let totalHours = 0;
     entries.forEach(e => { totalHours += e.totalHours; });
-    const totalEarned = totalHours * rate;
+    const pay = payableHoursFromGross(totalHours, rate);
+    const totalEarned = pay.totalEarned;
 
     // Sort entries by date (descending) for PDF
     const sortedEntries = [...entries].sort((a, b) => b.date.localeCompare(a.date));
 
-    // Helper function to draw a table row (matching second image with gray header)
+    // Helper: Date | Clock in | Clock out | Total Hours | Earned (no Break column)
     function drawTableRow(doc, y, rowData, isHeader = false, dateWithDay = null) {
-      const colWidths = [35, 28, 28, 25, 30, 30];
+      const colWidths = [42, 35, 40, 32, 33];
       const startX = 14;
       let currentX = startX;
       const rowHeight = isHeader ? 12 : 9;
+      const tableWidth = colWidths.reduce((a, b) => a + b, 0);
 
-      // Header background (light gray like second image)
       if (isHeader) {
-        doc.setFillColor(241, 245, 249); // slate-100 - light gray background
-        doc.rect(startX, y, 182, rowHeight, "F");
+        doc.setFillColor(241, 245, 249);
+        doc.rect(startX, y, tableWidth, rowHeight, "F");
       }
 
-      // Draw cells (y is now the top of the row, text goes downward)
       rowData.forEach((text, idx) => {
-        doc.setTextColor(15, 23, 42); // slate-900 for all text
+        doc.setTextColor(15, 23, 42);
         doc.setFontSize(isHeader ? 10 : 9);
         doc.setFont(undefined, isHeader ? "bold" : "normal");
-        
-        // All text left-aligned (matching second image)
-        const align = "left";
-        
-        // Special handling for Date column with day name
+
         if (idx === 0 && dateWithDay) {
           doc.setFontSize(9);
           doc.setFont(undefined, "normal");
           doc.setTextColor(15, 23, 42);
           doc.text(dateWithDay.date, currentX + 3, y + 4);
           doc.setFontSize(7);
-          doc.setTextColor(100, 116, 139); // slate-500 for day
+          doc.setTextColor(100, 116, 139);
           doc.text(dateWithDay.day, currentX + 3, y + 8);
           doc.setTextColor(15, 23, 42);
         } else {
-          doc.text(text, currentX + 3, y + 6, { align });
+          doc.text(text, currentX + 3, y + 6, { align: "left" });
         }
-        
+
         currentX += colWidths[idx];
       });
 
-      // Draw only horizontal line at bottom of row (subtle, no vertical borders)
-      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setDrawColor(226, 232, 240);
       doc.setLineWidth(0.3);
-      doc.line(startX, y + rowHeight, startX + 182, y + rowHeight);
+      doc.line(startX, y + rowHeight, startX + tableWidth, y + rowHeight);
 
-      return y + rowHeight + 1; // Return new y position for next row (add small spacing)
+      return y + rowHeight + 1;
     }
 
     let currentPage = 1;
@@ -107,8 +104,8 @@ export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTim
     // Start table after header
     yPos = 50;
 
-    // Table Header (matching web interface)
-    const headers = ["Date", "Clock in", "Clock out", "Break", "Total Hours", "Earned"];
+    // Table Header
+    const headers = ["Date", "Clock in", "Clock out", "Total Hours", "Earned"];
     yPos = drawTableRow(doc, yPos, headers, true);
 
     // Table Rows
@@ -144,10 +141,9 @@ export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTim
       };
 
       const rowData = [
-        "", // Date will be handled separately with dateWithDay
+        "", // Date handled via dateWithDay
         clockIn12,
         clockOut12,
-        e.breakMin + " min",
         fmtHours(e.totalHours),
         fmtMoney(earned)
       ];
@@ -168,31 +164,88 @@ export function exportToPDF(els, setMessage, entries, rate, getDayName, parseTim
     doc.line(14, yPos, 196, yPos);
     yPos += 5;
 
-    // Totals row with bold text - align with data columns
+    // Table total row: show ALL worked hours (gross) in the hours column
     doc.setFontSize(10);
     doc.setFont(undefined, "bold");
     doc.setTextColor(15, 23, 42);
-    
-    // Column widths: [35, 28, 28, 25, 30, 30] - same as drawTableRow function
-    const colWidths = [35, 28, 28, 25, 30, 30];
+
+    const colWidths = [42, 35, 40, 32, 33];
     const startX = 14;
     let currentX = startX;
-    
-    // "Total" label in first column (left-aligned like data)
-    doc.text("Total", currentX + 3, yPos + 6);
-    currentX += colWidths[0]; // Date column
-    
-    // Skip Clock in, Clock out, Break columns (empty)
-    currentX += colWidths[1] + colWidths[2] + colWidths[3];
-    
-    // Total Hours (right-aligned within Total Hours column for better number alignment)
-    const totalHoursX = currentX + colWidths[4] - 18; // Right edge of column minus padding
-    doc.text(fmtHours(totalHours), totalHoursX, yPos + 6, { align: "right" });
-    currentX += colWidths[4];
-    
-    // Total Earned (right-aligned within Earned column for better number alignment)
-    const totalEarnedX = currentX + colWidths[5] - 18; // Right edge of column minus padding
-    doc.text(fmtMoney(totalEarned), totalEarnedX, yPos + 6, { align: "right" });
+
+    doc.text("Total (all hours)", currentX + 3, yPos + 6);
+    currentX += colWidths[0];
+    currentX += colWidths[1] + colWidths[2];
+
+    const grossHoursX = currentX + colWidths[3] - 18;
+    doc.text(fmtHours(pay.grossHours), grossHoursX, yPos + 6, { align: "right" });
+    currentX += colWidths[3];
+
+    const grossEarnedX = currentX + colWidths[4] - 18;
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(8);
+    doc.text("see below", grossEarnedX, yPos + 6, { align: "right" });
+
+    // Pay calculation box: gross → tax deduction → payable → earned
+    yPos += 16;
+    if (yPos > 230) {
+      doc.addPage();
+      currentPage++;
+      yPos = 50;
+    }
+
+    const boxX = 14;
+    const boxW = 182;
+    const boxH = 54;
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.rect(boxX, yPos, boxW, boxH, "FD");
+
+    let lineY = yPos + 8;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("Pay calculation", boxX + 6, lineY);
+
+    lineY += 8;
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(51, 65, 85);
+
+    const leftCol = boxX + 6;
+    const rightCol = boxX + boxW - 6;
+
+    doc.text("Total hours worked (all shifts)", leftCol, lineY);
+    doc.text(fmtHours(pay.grossHours) + " hrs", rightCol, lineY, { align: "right" });
+
+    lineY += 7;
+    doc.text(`Less: tax hours (first ${pay.taxCap} hrs)`, leftCol, lineY);
+    doc.text("−" + fmtHours(pay.taxHoursApplied) + " hrs", rightCol, lineY, { align: "right" });
+
+    lineY += 2;
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.line(leftCol, lineY, rightCol, lineY);
+
+    lineY += 6;
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("Final payable hours", leftCol, lineY);
+    doc.text(fmtHours(pay.payableHours) + " hrs", rightCol, lineY, { align: "right" });
+
+    lineY += 7;
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(51, 65, 85);
+    doc.text("Hourly rate", leftCol, lineY);
+    doc.text(fmtMoney(rate) + "/hr", rightCol, lineY, { align: "right" });
+
+    lineY += 7;
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(4, 120, 87); // emerald-700
+    doc.text("Total earned (payable × rate)", leftCol, lineY);
+    doc.text(fmtMoney(totalEarned), rightCol, lineY, { align: "right" });
 
     // Footer on each page
     const totalPages = doc.internal.pages.length - 1;

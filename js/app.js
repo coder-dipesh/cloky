@@ -28,6 +28,21 @@ const els = {
   rows: document.getElementById("rows"),
   grandTotal: document.getElementById("grandTotal"),
   totalEarned: document.getElementById("totalEarned"),
+  grossHours: document.getElementById("grossHours"),
+  taxHoursApplied: document.getElementById("taxHoursApplied"),
+  taxCapLabel: document.getElementById("taxCapLabel"),
+  taxCapValue: document.getElementById("taxCapValue"),
+  taxProgressPct: document.getElementById("taxProgressPct"),
+  taxProgressBar: document.getElementById("taxProgressBar"),
+  taxProgressBarWrap: document.getElementById("taxProgressBarWrap"),
+  taxProgressLabel: document.getElementById("taxProgressLabel"),
+  payStatusMsg: document.getElementById("payStatusMsg"),
+  shiftsBarEarned: document.getElementById("shiftsBarEarned"),
+  shiftsBarPayable: document.getElementById("shiftsBarPayable"),
+  shiftsBarGross: document.getElementById("shiftsBarGross"),
+  shiftsBarTaxLeft: document.getElementById("shiftsBarTaxLeft"),
+  shiftsBarAvg: document.getElementById("shiftsBarAvg"),
+  shiftsBarCount: document.getElementById("shiftsBarCount"),
   msg: document.getElementById("msg"),
   hourlyRate: document.getElementById("hourlyRate"),
 
@@ -199,6 +214,57 @@ function renderInsights(entries, rate) {
   els.statWeekDeltaEarned.classList.add(...parts);
 }
 
+function renderPaySummary(grossHours, rate, shiftCount = 0) {
+  const pay = Calculations.payableHoursFromGross(grossHours, rate);
+  const capLabel = String(pay.taxCap);
+  const avg = shiftCount > 0 ? pay.grossHours / shiftCount : 0;
+
+  if (els.taxCapLabel) els.taxCapLabel.textContent = capLabel;
+  if (els.taxCapValue) els.taxCapValue.textContent = capLabel;
+  if (els.grossHours) els.grossHours.textContent = Utils.fmtHours(pay.grossHours);
+  if (els.taxHoursApplied) els.taxHoursApplied.textContent = Utils.fmtHours(pay.taxHoursApplied);
+  if (els.grandTotal) els.grandTotal.textContent = Utils.fmtHours(pay.payableHours);
+  if (els.totalEarned) els.totalEarned.textContent = Utils.fmtMoney(pay.totalEarned);
+
+  if (els.shiftsBarEarned) els.shiftsBarEarned.textContent = Utils.fmtMoney(pay.totalEarned);
+  if (els.shiftsBarPayable) els.shiftsBarPayable.textContent = Utils.fmtHours(pay.payableHours);
+  if (els.shiftsBarGross) els.shiftsBarGross.textContent = Utils.fmtHours(pay.grossHours);
+  if (els.shiftsBarTaxLeft) els.shiftsBarTaxLeft.textContent = Utils.fmtHours(pay.taxHoursRemaining);
+  if (els.shiftsBarAvg) els.shiftsBarAvg.textContent = Utils.fmtHours(avg);
+  if (els.shiftsBarCount) els.shiftsBarCount.textContent = String(shiftCount);
+
+  const pct = Math.round(pay.taxProgressPct);
+  if (els.taxProgressPct) els.taxProgressPct.textContent = `${pct}%`;
+  if (els.taxProgressBar) els.taxProgressBar.style.width = `${pct}%`;
+  if (els.taxProgressBarWrap) els.taxProgressBarWrap.setAttribute("aria-valuenow", String(pct));
+
+  // Progress bar color: amber while filling tax, emerald once cleared
+  if (els.taxProgressBar) {
+    els.taxProgressBar.classList.toggle("bg-amber-500", !pay.isTaxCleared);
+    els.taxProgressBar.classList.toggle("dark:bg-amber-400", !pay.isTaxCleared);
+    els.taxProgressBar.classList.toggle("bg-emerald-500", pay.isTaxCleared);
+    els.taxProgressBar.classList.toggle("dark:bg-emerald-400", pay.isTaxCleared);
+  }
+
+  if (els.taxProgressLabel) {
+    els.taxProgressLabel.textContent = pay.isTaxCleared
+      ? "Tax allowance filled"
+      : "Tax allowance progress";
+  }
+
+  if (els.payStatusMsg) {
+    if (pay.grossHours <= 0) {
+      els.payStatusMsg.textContent = "Add shifts to start filling your tax hours.";
+    } else if (!pay.isTaxCleared) {
+      els.payStatusMsg.textContent = `${Utils.fmtHours(pay.taxHoursRemaining)} tax hours left before pay starts counting.`;
+    } else {
+      els.payStatusMsg.textContent = `Tax hours covered. You’re earning on ${Utils.fmtHours(pay.payableHours)} payable hours.`;
+    }
+  }
+
+  return pay;
+}
+
 async function render() {
   let entries = await Storage.loadEntries();
   entries = await Storage.pruneOldEntries(entries, setMessage);
@@ -212,11 +278,12 @@ async function render() {
   const start = (currentPage - 1) * PAGE_SIZE;
   const pageEntries = entries.slice(start, start + PAGE_SIZE);
 
-  // Totals use ALL entries
+  // Totals use ALL entries; first 48 tax hours are excluded from pay
   let totalHours = 0;
   for (const e of entries) totalHours += e.totalHours;
 
   const rate = await Storage.loadHourlyRate();
+  renderPaySummary(totalHours, rate, entries.length);
 
   // Table rows (only current page)
   els.rows.innerHTML = "";
@@ -297,9 +364,6 @@ async function render() {
       if (rowCb) rowCb.checked = selectedRowIds.has(e.id);
     }
   }
-
-  els.grandTotal.textContent = Utils.fmtHours(totalHours);
-  els.totalEarned.textContent = Utils.fmtMoney(totalHours * rate);
 
   // Weekly summary + insights (use rate already loaded above)
   renderWeeklySummary(entries, rate);

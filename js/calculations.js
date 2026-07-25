@@ -3,6 +3,7 @@
  */
 
 import { parseTimeToMinutes } from './utils.js';
+import { TAX_HOURS_EXCLUDED } from './config.js';
 
 // Returns { hours, isOvernight, workedMin, netMin }
 export function calcHoursMeta(inStr, outStr, breakMinutes) {
@@ -45,4 +46,42 @@ export function computeMostWorkedDay(entries, parseISODateLocal) {
     }
   }
   return best ? { day: best, hours: bestVal } : { day: "—", hours: 0 };
+}
+
+/**
+ * Hours used for pay after excluding a fixed tax-hour allowance.
+ * First TAX_HOURS_EXCLUDED hours do not count toward pay; anything above does.
+ *
+ * @param {number} grossHours Sum of all shift hours
+ * @param {number} [rate=0] Hourly rate for earned amount
+ * @returns {{
+ *   grossHours: number,
+ *   taxCap: number,
+ *   taxHoursApplied: number,
+ *   taxHoursRemaining: number,
+ *   payableHours: number,
+ *   taxProgressPct: number,
+ *   isTaxCleared: boolean,
+ *   totalEarned: number
+ * }}
+ */
+export function payableHoursFromGross(grossHours, rate = 0) {
+  const gross = Math.max(0, Number(grossHours) || 0);
+  const taxCap = TAX_HOURS_EXCLUDED;
+  const taxHoursApplied = Math.min(taxCap, gross);
+  const taxHoursRemaining = Math.max(0, taxCap - gross);
+  const payableHours = Math.max(0, gross - taxCap);
+  const taxProgressPct = taxCap > 0 ? Math.min(100, (taxHoursApplied / taxCap) * 100) : 100;
+  const numRate = Number(rate) || 0;
+
+  return {
+    grossHours: gross,
+    taxCap,
+    taxHoursApplied,
+    taxHoursRemaining,
+    payableHours,
+    taxProgressPct,
+    isTaxCleared: taxHoursRemaining <= 0.0001,
+    totalEarned: payableHours * numRate,
+  };
 }
